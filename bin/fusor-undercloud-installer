@@ -2,8 +2,6 @@
 
 # create stack user, become her
 useradd stack
-PASSWORD=`date | md5sum | cut -d" " -f1`
-echo $PASSWORD | passwd stack --stdin
 echo "stack ALL=(root) NOPASSWD:ALL" >> /etc/sudoers.d/stack
 chmod 0440 /etc/sudoers.d/stack
 
@@ -45,7 +43,7 @@ sudo -u stack fusor-undercloud-configurator
 # call out to egon to run the undercloud installer
 gem install egon  # delete this when we install egon via rpm
 gem install net-ssh  # delete this when we install egon via rpm
-sudo -u stack undercloud-install-instack-virt.rb localhost stack $PASSWORD # call egon to do the install
+sudo -u stack undercloud-install-local.rb # call egon to do the install
 
 # Delete the stupid bogus repo
 rm -rf /tmp/repodata

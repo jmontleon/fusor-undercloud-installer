@@ -1,0 +1,118 @@
+#!/usr/bin/python
+import netifaces as ni
+import fcntl, socket, struct, sys
+
+# Thanks http://stackoverflow.com/questions/159137/getting-mac-address
+def getHwAddr(ifname):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', ifname[:15]))
+    return ':'.join(['%02x' % ord(char) for char in info[18:24]])
+
+def write_undercloud_conf(provisioning_nic, advanced):
+  sample = open('/usr/share/instack-undercloud/undercloud.conf.sample', 'r')
+  conf = open('/home/stack/undercloud.conf', 'w+')
+  for line in iter(sample):
+    line = line.rstrip() # drop newlines
+    if advanced:
+      if line.startswith("#"):
+        if line.startswith("# "):
+          # print these lines, they explain the upcomming option
+          print line
+        else:
+          # these lines are the options (generally), parse it and ask
+          if ' = ' in line:
+            option, default = line.split(' = ')
+            option = option[1:] # drop the '#'
+            if option == 'local_interface':
+              answer = provisioning_nic
+              print option + ' = ' + provisioning_nic
+            else:
+              answer = raw_input('%s? [%s] ' % (option, default))
+            if answer:
+              line = option + ' = ' + answer
+            else:
+              line = '#' + option + ' = ' + default
+            print
+    else: # not advanced
+      if line.startswith('#local_interface = '):
+        line = 'local_interface = ' + provisioning_nic
+    conf.write(line + '\n')
+  sample.close()
+  conf.close()
+
+# discover things about our network interfaces
+nics = ni.interfaces()
+nics.remove('lo')
+
+if len(nics) < 2:
+  print "Error: Undercloud machines must have at least two Network Interfaces."
+  print "Please refer to the OpenStack documentation."
+  exit(1)
+
+nics_with_addresses = {}
+for nic in nics:
+  if ni.AF_INET in ni.ifaddresses(nic):
+    nics_with_addresses[nic] = ni.ifaddresses(nic)[ni.AF_INET][0]['addr']
+
+if len(sys.argv) > 1: # getting nic ip addrs
+  if len(nics_with_addresses) == 0:
+    print "Warning: no network interfaces with IP Addresses were found. You will have to discover this machine's IP Address yourself later."
+    exit()
+  if len(nics_with_addresses) > 1:
+    print "Warning: multiple network interfaces with IP Addresses were found. You will have to decide which is the correct IP Address yourself."
+  for nic in nics_with_addresses.keys():
+    print "%s: %s" % (nic, nics_with_addresses[nic])
+  exit()
+
+# let's make a guess what the provisioning nic should be:
+# 1) no nics with no address, guess first nic (random)
+# 2) if there's only one nic with no address, that one
+# 3) multiple nics with no address, first one that starts with an 'e'
+#      (like eth0 or em0)
+# 4) if none of them start with an 'e', guess first one
+no_address_nics = sorted(list(set(nics).difference(set(nics_with_addresses.keys()))))
+
+if len(no_address_nics) == 0:
+  guessed_provisioning_nic = nics[0]
+elif len(no_address_nics) == 1:
+  guessed_provisioning_nic = no_address_nics[0]
+else:
+  for nanic in no_address_nics:
+    if nanic.startswith('e'):
+      guessed_provisioning_nic = nanic
+      break
+  else: # looped through, no hits
+      guessed_provisioning_nic = no_address_nics[0]
+
+selected = False
+while not selected:
+  i = 1
+  for nic in nics:
+    print "%d: %s, MAC Addr: %s" % (i, nic, getHwAddr(nic))
+    if nic == guessed_provisioning_nic:
+      default = i
+    i += 1
+  selected = raw_input('Please select the Network Interface that is connected to your provisioning network [%d]: ' % default)
+  try:
+    if not selected:
+      selected = default
+    selected = int(selected)
+    if selected > len(nics):
+      raise ValueError
+  except ValueError:
+    # if they typed in the name of the nic...
+    if selected in nics:
+      selected = nics.index(selected) + 1
+    else:
+      selected = False
+      print "I'm sorry, I didn't understand that."
+
+provisioning_nic = nics[selected-1]
+
+advanced = raw_input('Would you like to specify advanced network and password configuration? (else defaults will be accepted and installation will begin) [y/N] ')
+if advanced in ['y','Y','yes','YES','Yes']:
+  advanced = True
+else:
+  advanced = False
+
+write_undercloud_conf(provisioning_nic, advanced)

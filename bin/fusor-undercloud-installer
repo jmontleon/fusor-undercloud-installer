@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# create stack user, become her
+useradd stack
+PASSWORD=`date | md5sum | cut -d" " -f1`
+echo $PASSWORD | passwd stack --stdin
+echo "stack ALL=(root) NOPASSWD:ALL" >> /etc/sudoers.d/stack
+chmod 0440 /etc/sudoers.d/stack
+
+# untar the overcloud images
+sudo -u stack mkdir -p /home/stack/images
+sudo -u stack mkdir -p /home/stack/templates
+cd /home/stack/images
+for a in `ls -1 /root/images/*.tar`; do
+  tar -xf $a
+done
+chown stack:stack /home/stack/images/*
+
+# do the hostname into hosts
+echo "127.0.0.1 `hostname -f` `hostname -s`" >> /etc/hosts
+
+# Create a stupid bogus yum repo so that yum won't exit with an error status
+# during the undercloud install
+mkdir /tmp/repodata
+
+echo '<metadata packages="2"><package type="rpm"><name>mysql-libs</name><arch>x86_64</arch><version epoch="0" ver="5.4" rel="1"/><checksum type="sha" pkgid="YES">94099f245daf064eebd591023af87c891eaaa291</checksum><summary>Fake package to make yum dependency resolution work</summary></package><package type="rpm"><name>mysql-devel</name><arch>x86_64</arch><version epoch="0" ver="5.4" rel="1"/><checksum type="sha" pkgid="YES">94099f245daf064eebd591023af87c891eaaa291</checksum><summary>Fake package to make yum dependency resolution work</summary></package></metadata>' > /tmp/repodata/primary.xml
+
+echo '<filelists packages="2"><package name="mysql-libs" arch="x86_64"><version epoch="0" ver="5.4" rel="1"/></package><package name="mysql-devel" arch="x86_64"><version epoch="0" ver="5.4" rel="1"/></package></filelists>' > /tmp/repodata/filelists.xml
+
+echo '<repomd><revision>1</revision><data type="primary"><checksum type="sha">7a221b9483a86c65378d744ca9f075b7afd25a03</checksum><location href="repodata/primary.xml"/></data><data type="filelists"><checksum type="sha">66fc42e40a9504c889b9b217f71e0a02abb1f454</checksum><location href="repodata/filelists.xml"/></data></repomd>' > /tmp/repodata/repomd.xml
+
+echo "[fake-repo-to-make-yum-happy]
+name=fake-repo-to-make-yum-happy
+baseurl=file:///tmp
+enabled=1" > /etc/yum.repos.d/fake.repo
+
+# Exit if this stuff doesn't go right
+set -e
+
+MYADDR=`fusor-undercloud-configurator get-addr`
+
+# Prompt user for network setup and write the undercloud config file
+sudo -u stack fusor-undercloud-configurator
+
+# call out to egon to run the undercloud installer
+gem install egon  # delete this when we install egon via rpm
+gem install net-ssh  # delete this when we install egon via rpm
+sudo -u stack undercloud-install-instack-virt.rb localhost stack $PASSWORD # call egon to do the install
+
+# Delete the stupid bogus repo
+rm -rf /tmp/repodata
+rm -f /etc/yum.repos.d/fake.repo
+
+# Echo out ip addr and password
+echo "Installation complete!"
+echo
+echo "Your IP Address is:"
+echo $MYADDR
+echo "and your admin password is:"
+hiera admin_password
+echo "Make a note of these values for the RHCI web UI."

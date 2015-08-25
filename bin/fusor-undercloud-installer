@@ -35,6 +35,11 @@ enabled=1" > /etc/yum.repos.d/fake.repo
 # Exit if this stuff doesn't go right
 set -e
 
+# Ask for DNS server
+NAMESERVER=`grep nameserver /etc/resolv.conf | awk '{print $2}'`
+read -e -p "Enter the DNS nameserver to use for the Overcloud: " -i $NAMESERVER NAMESERVER
+
+# Store public ip address for later
 MYADDR=`fusor-undercloud-configurator get-addr`
 
 # Prompt user for network setup and write the undercloud config file
@@ -53,6 +58,10 @@ rm -f /etc/yum.repos.d/fake.repo
 cd /home/stack/images
 source /home/stack/stackrc
 openstack overcloud image upload
+
+# Set DNS server
+NETWORK_ID=`neutron subnet-list | grep start | awk '{print $2}'`
+neutron subnet-update $NETWORK_ID --dns-nameserver $NAMESERVER
 
 # Echo out ip addr and password
 echo "Installation complete!"

@@ -116,3 +116,4 @@ else:
   advanced = False
 
 write_undercloud_conf(provisioning_nic, advanced)
+

@@ -10,6 +10,7 @@ Source0:
 
 Requires:	python(abi) = 2.7
 Requires:	egon
+Requires:	python-netifaces
 BuildArch	noarch
 
 %description

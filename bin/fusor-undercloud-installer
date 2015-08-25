@@ -54,6 +54,5 @@ echo "Installation complete!"
 echo
 echo "Your IP Address is:"
 echo $MYADDR
-echo "and your admin password is:"
-hiera admin_password
+echo "and your root password is 'changeme' unless you have already changed it."
 echo "Make a note of these values for the RHCI web UI."

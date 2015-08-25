@@ -43,11 +43,16 @@ sudo -u stack fusor-undercloud-configurator
 # call out to egon to run the undercloud installer
 gem install egon  # delete this when we install egon via rpm
 gem install net-ssh  # delete this when we install egon via rpm
-sudo -u stack undercloud-install-local.rb # call egon to do the install
+sudo -u stack env "PATH=$PATH" undercloud-install-local.rb # call egon to do the install
 
 # Delete the stupid bogus repo
 rm -rf /tmp/repodata
 rm -f /etc/yum.repos.d/fake.repo
+
+# Upload the overcloud images
+cd /home/stack/images
+source /home/stack/stackrc
+openstack overcloud image upload
 
 # Echo out ip addr and password
 echo "Installation complete!"

@@ -41,7 +41,6 @@ HOSTNAME=`hostname -f`
 read -e -p "Set your resolvable Fully Qualified Domain Name: " -i $HOSTNAME HOSTNAME
 hostnamectl set-hostname $HOSTNAME
 hostnamectl set-hostname --transient $HOSTNAME
-export HOSTNAME=manager.example.com
 echo "127.0.0.1 `hostname -f` `hostname -s`" >> /etc/hosts
 
 # Ask for DNS server
@@ -55,9 +54,7 @@ MYADDR=`fusor-undercloud-configurator get-addr`
 sudo -u stack fusor-undercloud-configurator
 
 # call out to egon to run the undercloud installer
-gem install egon  # delete this when we install egon via rpm
-gem install net-ssh  # delete this when we install egon via rpm
-sudo -u stack env "PATH=$PATH" undercloud-install-local.rb # call egon to do the install
+sudo -u stack scl enable ruby193 "undercloud-install-local.rb" # call egon to do the install
 
 # Delete the stupid bogus repo
 rm -rf /tmp/repodata

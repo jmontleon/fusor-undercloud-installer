@@ -5,14 +5,8 @@ useradd stack
 echo "stack ALL=(root) NOPASSWD:ALL" >> /etc/sudoers.d/stack
 chmod 0440 /etc/sudoers.d/stack
 
-# untar the overcloud images
 sudo -u stack mkdir -p /home/stack/images
 sudo -u stack mkdir -p /home/stack/templates
-cd /home/stack/images
-for a in `ls -1 /root/images/*.tar`; do
-  tar -xf $a
-done
-chown stack:stack /home/stack/images/*
 
 # Create a stupid bogus yum repo so that yum won't exit with an error status
 # during the undercloud install
@@ -59,6 +53,13 @@ sudo -u stack scl enable ruby193 "undercloud-install-local.rb" # call egon to do
 # Delete the stupid bogus repo
 rm -rf /tmp/repodata
 rm -f /etc/yum.repos.d/fake.repo
+
+# untar the overcloud images
+cd /home/stack/images
+for a in `ls -1 /root/images/*.tar`; do
+  tar -xf $a
+done
+chown stack:stack /home/stack/images/*
 
 # Upload the overcloud images
 cd /home/stack/images

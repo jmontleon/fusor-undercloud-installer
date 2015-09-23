@@ -42,7 +42,11 @@ NAMESERVER=`grep nameserver /etc/resolv.conf | awk '{print $2}'`
 read -e -p "Enter the DNS nameserver to use for the Overcloud: " -i $NAMESERVER NAMESERVER
 
 # Store public ip address for later
+# If there's an error, the next call to configurator will print it
+# let's not exit this script here because the error will not be printed
+set +e
 MYADDR=`fusor-undercloud-configurator get-addr`
+set -e
 
 # Prompt user for network setup and write the undercloud config file
 sudo -u stack fusor-undercloud-configurator
@@ -55,6 +59,7 @@ rm -rf /tmp/repodata
 rm -f /etc/yum.repos.d/fake.repo
 
 # untar the overcloud images
+echo "Importing Overcloud images."
 cd /home/stack/images
 for a in `ls -1 /root/images/*.tar`; do
   tar -xf $a
@@ -75,5 +80,4 @@ echo "Installation complete!"
 echo
 echo "Your IP Address is:"
 echo $MYADDR
-echo "and your root password is 'changeme' unless you have already changed it."
-echo "Make a note of these values for the RHCI web UI."
+echo "Make a note of this for the RHCI web UI."

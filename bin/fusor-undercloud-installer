@@ -52,6 +52,7 @@ set -e
 sudo -u stack fusor-undercloud-configurator
 
 # call out to egon to run the undercloud installer
+cd /home/stack
 sudo -u stack scl enable ruby193 "undercloud-install-local.rb" # call egon to do the install
 
 # Delete the stupid bogus repo

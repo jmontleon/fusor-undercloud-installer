@@ -39,6 +39,7 @@ echo "127.0.0.1 `hostname -f` `hostname -s`" >> /etc/hosts
 
 # Ask for DNS server
 NAMESERVER=`grep nameserver /etc/resolv.conf | awk '{print $2}'`
+if [ -z $NAMESERVER ]; then NAMESERVER='127.0.0.1'; fi
 read -e -p "Enter the DNS nameserver to use for the Overcloud: " -i $NAMESERVER NAMESERVER
 
 # Store public ip address for later

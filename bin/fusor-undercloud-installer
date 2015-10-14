@@ -31,11 +31,10 @@ echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
 sysctl -p /etc/sysctl.conf
 
 # do the hostname into hosts
-HOSTNAME=`hostname -f`
 read -e -p "Set your resolvable Fully Qualified Domain Name: " -i $HOSTNAME HOSTNAME
 hostnamectl set-hostname $HOSTNAME
 hostnamectl set-hostname --transient $HOSTNAME
-echo "127.0.0.1 `hostname -f` `hostname -s`" >> /etc/hosts
+echo "127.0.0.1 $HOSTNAME `hostname -s`" >> /etc/hosts
 
 # Ask for DNS server
 NAMESERVER=`grep nameserver /etc/resolv.conf | awk '{print $2}'`

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import netifaces as ni
-import fcntl, socket, struct, sys
+import fcntl, socket, struct, sys, re
 
 # Thanks http://stackoverflow.com/questions/159137/getting-mac-address
 def getHwAddr(ifname):
@@ -8,9 +8,22 @@ def getHwAddr(ifname):
     info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', ifname[:15]))
     return ':'.join(['%02x' % ord(char) for char in info[18:24]])
 
-def write_undercloud_conf(provisioning_nic, advanced):
+def write_undercloud_conf(provisioning_nic, ip_number, netmask, gateway, advanced):
   sample = open('/usr/share/instack-undercloud/undercloud.conf.sample', 'r')
   conf = open('/home/stack/undercloud.conf', 'w+')
+  defaults = {}
+  defaults['local_interface'] = provisioning_nic
+  defaults['image_path'] = '/home/stack/images'
+  defaults['local_ip'] = ip_num_to_addr(ip_number + 0o1) + '/' + netmask
+  defaults['undercloud_public_vip'] = ip_num_to_addr(ip_number + 0o2)
+  defaults['undercloud_admin_vip'] = ip_num_to_addr(ip_number + 0o3)
+  defaults['masquerade_network'] = ip_num_to_addr(ip_number) + '/' + netmask
+  defaults['dhcp_start'] = ip_num_to_addr(ip_number + 0o5)
+  defaults['dhcp_end'] = ip_num_to_addr(ip_number + 0o24)
+  defaults['network_cidr'] = ip_num_to_addr(ip_number) + '/' + netmask
+  defaults['network_gateway'] = gateway
+  defaults['discovery_iprange'] = ip_num_to_addr(ip_number + 0o100) + ',' + ip_num_to_addr(ip_number + 0o120)
+
   for line in iter(sample):
     line = line.rstrip() # drop newlines
     if advanced:
@@ -23,22 +36,29 @@ def write_undercloud_conf(provisioning_nic, advanced):
           if ' = ' in line:
             option, default = line.split(' = ')
             option = option[1:] # drop the '#'
-            if option == 'local_interface':
-              answer = provisioning_nic
-              print option + ' = ' + provisioning_nic
-            else:
-              answer = raw_input('%s? [%s] ' % (option, default))
+            if option in defaults:
+              default = defaults[option]
+            answer = raw_input('%s? [%s] ' % (option, default))
             if answer:
               line = option + ' = ' + answer
             else:
-              line = '#' + option + ' = ' + default
+              line = option + ' = ' + default
             print
     else: # not advanced
-      if line.startswith('#local_interface = '):
-        line = 'local_interface = ' + provisioning_nic
+      for option in defaults:
+        if line.startswith('#%s = ' % option):
+          line = option + ' = ' + defaults[option]
     conf.write(line + '\n')
   sample.close()
   conf.close()
+
+def ip_num_to_addr(ip):
+    octets = []
+    octets.append((ip >> 24) & 0xff)
+    octets.append((ip >> 16) & 0xff)
+    octets.append((ip >> 8) & 0xff)
+    octets.append(ip & 0xff)
+    return '%d.%d.%d.%d' % tuple(octets)
 
 # discover things about our network interfaces
 nics = ni.interfaces()
@@ -109,11 +129,59 @@ while not selected:
 
 provisioning_nic = nics[selected-1]
 
-advanced = raw_input('Would you like to specify advanced network and password configuration? (else defaults will be accepted and installation will begin) [y/N] ')
-if advanced in ['y','Y','yes','YES','Yes']:
-  advanced = True
-else:
-  advanced = False
+# gather required info about network
+valid = False
+force_no_advanced = False
+while not valid:
+  print
+  input_str = raw_input('We require a block of IP Addresses that we can assign on your network. Please specify this block using standard slash notation: [192.0.2.0/24] ')
+  if not input_str:
+    input_str = '192.0.2.0/24'
+  if input_str.count('/') != 1:
+    print "I didn't understand that, please try again."
+    continue
+  ip_addr, netmask = input_str.split('/')
+  if not re.match('^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$', ip_addr):
+    print "I didn't understand that IP Address, please try again."
+    continue
+  if not re.match('^[0-9]{1,2}$', netmask):
+    print "I didn't understand that netmask, please try again."
+    continue
+  try:
+    ip_number = 0
+    for octet in ip_addr.split('.'):
+      ip_number = (ip_number << 8) | int(octet)
+    ip_max = 0xffffffff
+    netmask_number = (ip_max << (32 - int(netmask))) & ip_max
+  except:
+    print "Somthing went wrong when parsing IP Address and netmask, please try again."
+    continue
+  if int(netmask) > 25:
+    print "Warning: if you don't specify a netmask of 25 or less we will not be able to use defaults for additional network parameters and you will be forced to configure them yourself."
+    force_no_advanced = raw_input('Are you sure that is the appropriate netmask? [Y/n] ')
+    if force_no_advanced in ['n', 'N', 'no', 'NO', 'No']:
+      force_no_advanced = False
+      continue
+    else:
+      force_no_advanced = True
+  ip_number = ip_number & netmask_number
+  valid = True
 
-write_undercloud_conf(provisioning_nic, advanced)
+gateway = False
+while not gateway:
+  print
+  gateway = raw_input('Please specify the IP Address of the network gateway. This is preferably the router that leads out to the larger network but will default to this machine if not chagned, making this machine a critical piece of your OpenStack infrastructure. [%s] ' % ip_num_to_addr(ip_number + 1))
+  if not gateway:
+    gateway = ip_num_to_addr(ip_number + 1)
+
+advanced = False
+if not force_no_advanced:
+  print
+  advanced = raw_input('Would you like to specify advanced network and password configuration? (else defaults will be accepted and installation will begin) [y/N] ')
+  if advanced in ['y','Y','yes','YES','Yes']:
+    advanced = True
+  else:
+    advanced = False
+
+write_undercloud_conf(provisioning_nic, ip_number, netmask, gateway, advanced)
 

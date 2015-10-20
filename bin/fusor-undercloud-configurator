@@ -14,15 +14,15 @@ def write_undercloud_conf(provisioning_nic, ip_number, netmask, gateway, advance
   defaults = {}
   defaults['local_interface'] = provisioning_nic
   defaults['image_path'] = '/home/stack/images'
-  defaults['local_ip'] = ip_num_to_addr(ip_number + 0o1) + '/' + netmask
-  defaults['undercloud_public_vip'] = ip_num_to_addr(ip_number + 0o2)
-  defaults['undercloud_admin_vip'] = ip_num_to_addr(ip_number + 0o3)
+  defaults['local_ip'] = ip_num_to_addr(ip_number + 1) + '/' + netmask
+  defaults['undercloud_public_vip'] = ip_num_to_addr(ip_number + 2)
+  defaults['undercloud_admin_vip'] = ip_num_to_addr(ip_number + 3)
   defaults['masquerade_network'] = ip_num_to_addr(ip_number) + '/' + netmask
-  defaults['dhcp_start'] = ip_num_to_addr(ip_number + 0o5)
-  defaults['dhcp_end'] = ip_num_to_addr(ip_number + 0o24)
+  defaults['dhcp_start'] = ip_num_to_addr(ip_number + 5)
+  defaults['dhcp_end'] = ip_num_to_addr(ip_number + 24)
   defaults['network_cidr'] = ip_num_to_addr(ip_number) + '/' + netmask
   defaults['network_gateway'] = gateway
-  defaults['discovery_iprange'] = ip_num_to_addr(ip_number + 0o100) + ',' + ip_num_to_addr(ip_number + 0o120)
+  defaults['discovery_iprange'] = ip_num_to_addr(ip_number + 100) + ',' + ip_num_to_addr(ip_number + 120)
 
   for line in iter(sample):
     line = line.rstrip() # drop newlines

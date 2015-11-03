@@ -34,6 +34,9 @@ sysctl -p /etc/sysctl.conf
 read -e -p "Set your resolvable Fully Qualified Domain Name: " -i $HOSTNAME HOSTNAME
 hostnamectl set-hostname $HOSTNAME
 hostnamectl set-hostname --transient $HOSTNAME
+# In case we're running this installer again, delete any previous entries
+sed -i '/fusor-undercloud-installer/,+1d' /etc/hosts
+echo "# fusor-undercloud-installer managed:" >> /etc/hosts
 echo "127.0.0.1 $HOSTNAME `hostname -s`" >> /etc/hosts
 
 # Ask for DNS server

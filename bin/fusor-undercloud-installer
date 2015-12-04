@@ -40,7 +40,7 @@ echo "# fusor-undercloud-installer managed:" >> /etc/hosts
 echo "127.0.0.1 $HOSTNAME `hostname -s`" >> /etc/hosts
 
 # Ask for DNS server and set it if not already in resolv.conf
-NAMESERVER=`grep nameserver /etc/resolv.conf | awk '{print $2}'`
+NAMESERVER=`grep ^nameserver /etc/resolv.conf | head -1 |awk '{print $2}'`
 if [ -z $NAMESERVER ]; then NAMESERVER='127.0.0.1'; fi
 read -e -p "Enter the DNS nameserver to use for the Overcloud: " -i $NAMESERVER NAMESERVER
 grep -q $NAMESERVER /etc/resolv.conf || echo "nameserver $NAMESERVER" >> /etc/resolv.conf

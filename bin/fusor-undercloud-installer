@@ -63,6 +63,9 @@ sudo -u stack scl enable ruby193 "undercloud-install-local.rb" # call egon to do
 rm -rf /tmp/repodata
 rm -f /etc/yum.repos.d/fake.repo
 
+# set undercloud discoverd timeout value to a more sane value
+grep -q "^timeout" /etc/ironic-discoverd/discoverd.conf || sed -i.orig 's/\[discoverd\]/&\ntimeout = 300/' /etc/ironic-discoverd/discoverd.conf
+
 # untar the overcloud images
 echo "Importing Overcloud images."
 cd /home/stack/images

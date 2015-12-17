@@ -26,12 +26,14 @@ Fusor Undercloud Installer
 %install
 install -d -m0755 %{buildroot}%{_sbindir}
 cp bin/fusor-undercloud-installer %{buildroot}%{_sbindir}/fusor-undercloud-installer
+cp bin/fusor-undercloud-install %{buildroot}%{_sbindir}/fusor-undercloud-install
 cp bin/fusor-undercloud-configurator %{buildroot}%{_sbindir}/fusor-undercloud-configurator
 
 %files
 %doc LICENSE
 %defattr(755, root, root)
 %{_sbindir}/fusor-undercloud-installer
+%{_sbindir}/fusor-undercloud-install
 %{_sbindir}/fusor-undercloud-configurator
 
 

@@ -189,7 +189,7 @@ while not valid:
 gateway = False
 while not gateway:
   print
-  gateway = raw_input('Please specify the IP Address of the network gateway. This is preferably the router that leads out to the larger network but will default to this machine if not chagned, making this machine a critical piece of your OpenStack infrastructure. [%s] ' % ip_num_to_addr(ip_number + 1))
+  gateway = raw_input('Please specify the IP Address of the network gateway. This is preferably the router that leads out to the larger network but will default to this machine if not changed, making this machine a critical piece of your OpenStack infrastructure. [%s] ' % ip_num_to_addr(ip_number + 1))
   if not gateway:
     gateway = ip_num_to_addr(ip_number + 1)
 

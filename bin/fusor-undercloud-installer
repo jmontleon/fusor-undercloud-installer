@@ -1,3 +1,3 @@
 #!/bin/bash
 
-fusor-undercloud-install | tee /var/log/fusor-undercloud-install.log
+fusor-undercloud-install 2>&1 /var/log/fusor-undercloud-install.log

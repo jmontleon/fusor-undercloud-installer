@@ -87,5 +87,5 @@ neutron subnet-update $NETWORK_ID --dns-nameserver $NAMESERVER
 echo "Installation complete!"
 echo
 echo "Your IP Address is:"
-echo $MYADDR
+python -c "import netifaces as ni; print ni.ifaddresses('br-ctlplane')[2][0]['addr']"
 echo "Make a note of this for the RHCI web UI."

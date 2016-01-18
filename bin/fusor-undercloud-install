@@ -53,7 +53,7 @@ MYADDR=`fusor-undercloud-configurator get-addr`
 set -e
 
 # Prompt user for network setup and write the undercloud config file
-sudo -u stack fusor-undercloud-configurator
+sudo -u stack python -u /usr/sbin/fusor-undercloud-configurator
 
 # call out to egon to run the undercloud installer
 cd /home/stack

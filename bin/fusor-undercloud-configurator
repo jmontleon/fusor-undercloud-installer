@@ -192,7 +192,7 @@ valid_ip = False
 undercloud_ip = False
 while not valid_ip:
   print
-  undercloud_ip = raw_input('Please specify the IP address of the Openstack Director. Be sure that this IP is on the correct subnet [%s]. ' % ip_num_to_addr(ip_number))
+  undercloud_ip = raw_input('Please specify the IP address of the Openstack Director. Be sure that this IP is on the correct subnet and does not interfere with the block given above. [%s] ' % ip_num_to_addr(ip_number + 254))
   if not re.match('^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$', undercloud_ip):
     print "I didn't understand that IP Address, please try again."
     continue

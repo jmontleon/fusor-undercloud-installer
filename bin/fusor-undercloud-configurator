@@ -181,12 +181,27 @@ while not valid:
   ip_number = ip_number & netmask_number
   valid = True
 
+expected_subnet = ip_addr.split('.')
+del expected_subnet[-1]
+
+valid_subnet = False
 gateway = False
-while not gateway:
+while not valid_subnet:
   print
   gateway = raw_input('Please specify the IP Address of the network gateway. This is preferably the router that leads out to the larger network but will default to this machine if not changed, making this machine a critical piece of your OpenStack infrastructure. [%s] ' % ip_num_to_addr(ip_number + 1))
+  valid_subnet = True
   if not gateway:
     gateway = ip_num_to_addr(ip_number + 1)
+  else:
+    inputted_subnet = gateway.split('.')
+    del inputted_subnet[-1]
+
+    for i in range(0,3):
+      if expected_subnet[i] == inputted_subnet[i]:
+        continue
+      print "Entered IP address not on the same subnet as the specified network, please try again."
+      valid_subnet = False
+      break
 
 valid_ip = False
 undercloud_ip = False
@@ -197,9 +212,7 @@ while not valid_ip:
     print "I didn't understand that IP Address, please try again."
     continue
 
-  expected_subnet = ip_addr.split('.')
   inputted_subnet = undercloud_ip.split('.')
-  del expected_subnet[-1]
   del inputted_subnet[-1]
 
   valid_ip = True

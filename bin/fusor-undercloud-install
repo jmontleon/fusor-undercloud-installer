@@ -83,6 +83,13 @@ openstack overcloud image upload
 NETWORK_ID=`neutron subnet-list | grep start | awk '{print $2}'`
 neutron subnet-update $NETWORK_ID --dns-nameserver $NAMESERVER
 
+#Try to handle 1234601 a little better for the time being
+sed -i 's|${mac|${net0/mac|g' \
+  /usr/share/instack-undercloud/ironic-discoverd/os-apply-config/httpboot/discoverd.ipxe \
+  /usr/lib/python2.7/site-packages/ironic/drivers/modules/boot.ipxe \
+  /usr/lib/python2.7/site-packages/ironic/drivers/modules/ipxe_config.template \
+  /httpboot/*.ipxe
+
 # Echo out ip addr and password
 echo "Installation complete!"
 echo

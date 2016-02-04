@@ -1,0 +1,46 @@
+# Format:
+# <classname>:
+#   <param>: <value> - include and override the default(s)
+#
+# The minimum information is filled in by default, all advanced options
+# can be left blank if the default is desired. If specifying advanced
+# options, ensure that the 'specify' parameter is set to 'True'
+---
+undercloud:
+  provisioning_nic: eth1
+  ip_addr: 192.0.2.0/24
+  gateway: 192.0.2.1
+  undercloud_ip: 192.0.2.254
+hostname: instack.example.com
+nameserver: 127.0.0.1
+password:
+  admin_password: dog8code
+advanced:
+  specify: False
+  image_path:
+  undercloud_public_vip:
+  undercloud_admin_vip:
+  dhcp_start:
+  dhcp_end:
+  discovery_interface:
+  undercloud_debug:
+  undercloud_db_password:
+  undercloud_admin_token:
+  undercloud_glance_password:
+  undercloud_heat_encryption_key:
+  undercloud_heat_password:
+  undercloud_neutron_password:
+  undercloud_nova_password:
+  undercloud_ironic_password:
+  undercloud_tuskar_password:
+  undercloud_ceilometer_password:
+  undercloud_ceilometer_metering_secret:
+  undercloud_ceilometer_snmpd_user:
+  undercloud_ceilometer_snmpd_password:
+  undercloud_swift_password:
+  undercloud_rabbit_cookie:
+  undercloud_rabbit_password:
+  undercloud_rabbit_username:
+  undercloud_heat_stack_domain_admin_password:
+  undercloud_swift_hash_suffix:
+

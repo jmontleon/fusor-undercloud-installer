@@ -40,7 +40,7 @@ fusor_undercloud_install() {
 
   # Create a stupid bogus yum repo so that yum won't exit with an error status
   # during the undercloud install
-  mkdir /tmp/repodata
+  mkdir -p /tmp/repodata
 
   echo '<metadata packages="2"><package type="rpm"><name>mysql-libs</name><arch>x86_64</arch><version epoch="0" ver="5.4" rel="1"/><checksum type="sha" pkgid="YES">94099f245daf064eebd591023af87c891eaaa291</checksum><summary>Fake package to make yum dependency resolution work</summary></package><package type="rpm"><name>mysql-devel</name><arch>x86_64</arch><version epoch="0" ver="5.4" rel="1"/><checksum type="sha" pkgid="YES">94099f245daf064eebd591023af87c891eaaa291</checksum><summary>Fake package to make yum dependency resolution work</summary></package></metadata>' > /tmp/repodata/primary.xml
 
@@ -49,9 +49,9 @@ fusor_undercloud_install() {
   echo '<repomd><revision>1</revision><data type="primary"><checksum type="sha">7a221b9483a86c65378d744ca9f075b7afd25a03</checksum><location href="repodata/primary.xml"/></data><data type="filelists"><checksum type="sha">66fc42e40a9504c889b9b217f71e0a02abb1f454</checksum><location href="repodata/filelists.xml"/></data></repomd>' > /tmp/repodata/repomd.xml
 
   echo "[fake-repo-to-make-yum-happy]
-  name=fake-repo-to-make-yum-happy
-  baseurl=file:///tmp
-  enabled=1" > /etc/yum.repos.d/fake.repo
+name=fake-repo-to-make-yum-happy
+baseurl=file:///tmp
+enabled=1" > /etc/yum.repos.d/fake.repo
 
   # Exit if this stuff doesn't go right
   set -e

@@ -65,13 +65,30 @@ enabled=1" > /etc/yum.repos.d/fake.repo
   fi
   sysctl -p /etc/sysctl.conf
 
-  # Grab the desired hostname from answer file if specified
-  if [ $interactive == false ]; then
-    HOSTNAME=`grep ^hostname $CONF_FILE | awk '{print $2}'`
-  else
-    # do the hostname into hosts
-    read -e -p "Set your resolvable Fully Qualified Domain Name: " -i $HOSTNAME HOSTNAME
-  fi
+  ValidHostnameRegex='^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$'
+  ValidIpAddressRegex='^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$'
+  ValidInput=false
+
+  while [ $ValidInput == false ]; do
+    if [ $interactive == true ]; then
+      read -e -p "Set your resolvable Fully Qualified Domain Name: " -i $HOSTNAME HOSTNAME
+    else
+      # Grab the desired hostname from answer file
+      HOSTNAME=`grep ^hostname $CONF_FILE | awk '{print $2}'`
+    fi
+
+    if [[ $HOSTNAME =~ $ValidHostnameRegex ]]
+    then
+      echo "Hostname is in valid format, setting hostname"
+      ValidInput=true
+    else
+      echo "Specified hostname is not valid"
+      if [ $interactive == false ]; then
+        exit
+      fi
+    fi
+  done
+
   hostnamectl set-hostname $HOSTNAME
   hostnamectl set-hostname --transient $HOSTNAME
   # In case we're running this installer again, delete any previous entries
@@ -79,15 +96,37 @@ enabled=1" > /etc/yum.repos.d/fake.repo
   echo "# fusor-undercloud-installer managed:" >> /etc/hosts
   echo "127.0.0.1 $HOSTNAME `hostname -s`" >> /etc/hosts
 
+  ValidInput=false
   # Ask for DNS server and set it if not already in resolv.conf
   NAMESERVER=`grep ^nameserver /etc/resolv.conf | head -1 |awk '{print $2}'`
   if [ -z $NAMESERVER ]; then NAMESERVER='127.0.0.1'; fi
 
-  if [ $interactive == true ]; then
-    read -e -p "Enter the DNS nameserver to use for the Overcloud: " -i $NAMESERVER NAMESERVER
-  else
-    NAMESERVER=`grep ^nameserver $CONF_FILE | awk '{print $2}'`
-  fi
+  while [ $ValidInput == false ]; do
+    if [ $interactive == true ]; then
+      read -e -p "Enter the DNS nameserver's IP address to use for the Overcloud: " -i $NAMESERVER NAMESERVER
+    else
+      NAMESERVER=`grep ^nameserver $CONF_FILE | awk '{print $2}'`
+    fi
+    if [[  $NAMESERVER =~ $ValidIpAddressRegex  ]]
+    then
+      echo "Checking if nameserver is reachable..."
+      if ping -c 1 $NAMESERVER &> /dev/null
+      then
+        echo "Successfully pinged nameserver"
+        ValidInput=true
+      else
+        echo "Could not reach nameserver, please check that the server address is valid"
+        if [ $interactive == false ]; then
+          exit
+        fi
+      fi      
+    else
+      echo "Specified nameserver is not a valid IP address"
+      if [ $interactive == false ]; then
+        exit
+      fi
+    fi
+  done
 
   grep -q $NAMESERVER /etc/resolv.conf || echo "nameserver $NAMESERVER" >> /etc/resolv.conf
 

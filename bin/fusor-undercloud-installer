@@ -31,7 +31,10 @@ fusor_undercloud_install() {
   export CONF_FILE
 
   # create stack user, become her
-  useradd stack
+  id -u stack >/dev/null 2>&1
+  if [ $? -ne 0 ]; then
+    useradd stack
+  fi
   echo "stack ALL=(root) NOPASSWD:ALL" >> /etc/sudoers.d/stack
   chmod 0440 /etc/sudoers.d/stack
 

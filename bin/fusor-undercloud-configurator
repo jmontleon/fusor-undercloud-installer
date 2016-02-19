@@ -116,7 +116,7 @@ def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask, g
                         # blows up. It wants a blank line instead. Let's correct osp's
                         # bad examples so that this actually works.
                         if default == '<None>':
-                                default = ''
+                            default = ''
                         if answer:
                             line = option + ' = ' + answer
                         else:
@@ -219,7 +219,7 @@ else:
             guessed_provisioning_nic = nanic
             break
     else:  # looped through, no hits
-            guessed_provisioning_nic = no_address_nics[0]
+        guessed_provisioning_nic = no_address_nics[0]
 
 selected = False
 while not selected:

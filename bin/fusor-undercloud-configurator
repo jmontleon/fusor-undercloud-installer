@@ -1,6 +1,12 @@
 #!/usr/bin/python
 import netifaces as ni
-import fcntl, socket, struct, sys, re, os, yaml
+import fcntl
+import os
+import re
+import socket
+import struct
+import sys
+import yaml
 
 # Thanks http://stackoverflow.com/questions/159137/getting-mac-address
 def getHwAddr(ifname):

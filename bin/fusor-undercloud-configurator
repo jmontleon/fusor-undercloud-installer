@@ -86,7 +86,7 @@ def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask, g
             if line.startswith("#"):
                 if line.startswith("# "):
                     # print these lines only if in interactive mode, they explain the upcoming option
-                    if conf_file == None:
+                    if conf_file is None:
                         print line
                 else:
                     # these lines are the options (generally), parse it and ask
@@ -102,12 +102,12 @@ def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask, g
 
                         if option in defaults:
                             default = defaults[option]
-                        if conf_file != None:
+                        if conf_file is not None:
                             try:
                                 answer = answer_file["advanced"][option]
                             except KeyError:
                                 print "[%s] was not found in answer file" % option
-                                answer = None
+                                answer is None
                         else:
                             answer = raw_input('%s? [%s] ' % (option, default))
                         # This is stupid, but: the sample conf file contains "<None>" as
@@ -121,7 +121,7 @@ def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask, g
                             line = option + ' = ' + answer
                         else:
                             line = option + ' = ' + default
-                        if conf_file == None: 
+                        if conf_file is None: 
                             print
         else:  # not advanced
             for option in defaults:
@@ -177,7 +177,7 @@ if len(sys.argv) > 1:  # getting nic ip addrs
 
 conf_file = os.environ.get('CONF_FILE')
 
-if conf_file != None:                                 # Non Interactive Mode
+if conf_file is not None:                                 # Non Interactive Mode
     with open(conf_file, 'r') as f:
         answer_file = yaml.load(f)
     gateway = answer_file["undercloud"]["gateway"]

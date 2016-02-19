@@ -44,22 +44,22 @@ def is_invalid_subnet(ip_addr1, ip_addr2):
 def validate_all(ip_addr, netmask, undercloud_ip, gateway):
     if is_invalid_ip(ip_addr):
         print "Specified IP range is not valid"
-        os._exit(1)
+        sys.exit(1)
     if is_invalid_netmask(netmask):
         print "Specified Netmask is not valid"
-        os._exit(1)
+        sys.exit(1)
     if is_invalid_ip(undercloud_ip):
         print "Specified undercloud IP is not valid"
-        os._exit(1)
+        sys.exit(1)
     if is_invalid_ip(gateway):
         print "Specified network gateway is not valid"
-        os._exit(1)
+        sys.exit(1)
     if is_invalid_subnet(ip_addr, undercloud_ip):
         print "Specified undercloud IP address is not on the correct subnet"
-        os._exit(1)
+        sys.exit(1)
     if is_invalid_subnet(ip_addr, gateway):
         print "Specified network gateway is not on the correct subnet"
-        os._exit(1)
+        sys.exit(1)
 
 
 def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask, gateway, advanced, admin_password):

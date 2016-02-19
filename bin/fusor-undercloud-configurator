@@ -4,140 +4,140 @@ import fcntl, socket, struct, sys, re, os, yaml
 
 # Thanks http://stackoverflow.com/questions/159137/getting-mac-address
 def getHwAddr(ifname):
-  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', ifname[:15]))
-  return ':'.join(['%02x' % ord(char) for char in info[18:24]])
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    info = fcntl.ioctl(s.fileno(), 0x8927,    struct.pack('256s', ifname[:15]))
+    return ':'.join(['%02x' % ord(char) for char in info[18:24]])
 
 def isInvalidIP(ip):
-  if re.match('^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$', ip):
-    return False
-  return True
+    if re.match('^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$', ip):
+        return False
+    return True
 
 def isInvalidNetmask(netmask):
-  if re.match('^[0-9]{1,2}$', netmask):
-    return False
-  return True
+    if re.match('^[0-9]{1,2}$', netmask):
+        return False
+    return True
 
 def isInvalidSubnet(ip_addr1, ip_addr2):
-  subnet1 = ip_addr1.split('.')
-  del subnet1[-1]
-  subnet2 = ip_addr2.split('.')
-  del subnet2[-1]
+    subnet1 = ip_addr1.split('.')
+    del subnet1[-1]
+    subnet2 = ip_addr2.split('.')
+    del subnet2[-1]
 
-  for i in range(0,3):
-    if subnet1[i] == subnet2[i]:
-      continue
-    return True
-  return False
+    for i in range(0,3):
+        if subnet1[i] == subnet2[i]:
+            continue
+        return True
+    return False
 
 def validateAll(ip_addr, netmask, undercloud_ip, gateway):
-  if isInvalidIP(ip_addr):
-    print "Specified IP range is not valid"
-    os._exit(1)
-  if isInvalidNetmask(netmask):
-    print "Specified Netmask is not valid"
-    os._exit(1)
-  if isInvalidIP(undercloud_ip):
-    print "Specified undercloud IP is not valid"
-    os._exit(1)
-  if isInvalidIP(gateway):
-    print "Specified network gateway is not valid"
-    os._exit(1)
-  if isInvalidSubnet(ip_addr, undercloud_ip):
-    print "Specified undercloud IP address is not on the correct subnet"
-    os._exit(1)
-  if isInvalidSubnet(ip_addr, gateway):
-    print "Specified network gateway is not on the correct subnet"
-    os._exit(1)
+    if isInvalidIP(ip_addr):
+        print "Specified IP range is not valid"
+        os._exit(1)
+    if isInvalidNetmask(netmask):
+        print "Specified Netmask is not valid"
+        os._exit(1)
+    if isInvalidIP(undercloud_ip):
+        print "Specified undercloud IP is not valid"
+        os._exit(1)
+    if isInvalidIP(gateway):
+        print "Specified network gateway is not valid"
+        os._exit(1)
+    if isInvalidSubnet(ip_addr, undercloud_ip):
+        print "Specified undercloud IP address is not on the correct subnet"
+        os._exit(1)
+    if isInvalidSubnet(ip_addr, gateway):
+        print "Specified network gateway is not on the correct subnet"
+        os._exit(1)
 
 def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask, gateway, advanced, admin_password):
-  sample = open('/usr/share/instack-undercloud/undercloud.conf.sample', 'r')
-  conf = open('/home/stack/undercloud.conf', 'w+')
-  no_prompt = {}
-  no_prompt['local_interface'] = provisioning_nic
-  no_prompt['undercloud_admin_password'] = admin_password
-  defaults = {}
-  defaults['image_path'] = '/home/stack/images'
-  defaults['local_ip'] = undercloud_ip + '/' + netmask
-  defaults['undercloud_public_vip'] = ip_num_to_addr(ip_number + 2)
-  defaults['undercloud_admin_vip'] = ip_num_to_addr(ip_number + 3)
-  defaults['masquerade_network'] = ip_num_to_addr(ip_number) + '/' + netmask
-  defaults['dhcp_start'] = ip_num_to_addr(ip_number + 5)
-  defaults['dhcp_end'] = ip_num_to_addr(ip_number + 24)
-  defaults['network_cidr'] = ip_num_to_addr(ip_number) + '/' + netmask
-  defaults['network_gateway'] = gateway
-  defaults['discovery_iprange'] = ip_num_to_addr(ip_number + 100) + ',' + ip_num_to_addr(ip_number + 120)
+    sample = open('/usr/share/instack-undercloud/undercloud.conf.sample', 'r')
+    conf = open('/home/stack/undercloud.conf', 'w+')
+    no_prompt = {}
+    no_prompt['local_interface'] = provisioning_nic
+    no_prompt['undercloud_admin_password'] = admin_password
+    defaults = {}
+    defaults['image_path'] = '/home/stack/images'
+    defaults['local_ip'] = undercloud_ip + '/' + netmask
+    defaults['undercloud_public_vip'] = ip_num_to_addr(ip_number + 2)
+    defaults['undercloud_admin_vip'] = ip_num_to_addr(ip_number + 3)
+    defaults['masquerade_network'] = ip_num_to_addr(ip_number) + '/' + netmask
+    defaults['dhcp_start'] = ip_num_to_addr(ip_number + 5)
+    defaults['dhcp_end'] = ip_num_to_addr(ip_number + 24)
+    defaults['network_cidr'] = ip_num_to_addr(ip_number) + '/' + netmask
+    defaults['network_gateway'] = gateway
+    defaults['discovery_iprange'] = ip_num_to_addr(ip_number + 100) + ',' + ip_num_to_addr(ip_number + 120)
 
-  for line in iter(sample):
-    line = line.rstrip() # drop newlines
-    if advanced:
-      if line.startswith("#"):
-        if line.startswith("# "):
-          # print these lines only if in interactive mode, they explain the upcoming option
-          if conf_file == None:
-            print line
-        else:
-          # these lines are the options (generally), parse it and ask
-          if ' = ' in line:
-            option, default = line.split(' = ')
-            option = option[1:] # drop the '#'
-            if option in no_prompt:
-              # We already know the answer, set it and move on.
-              line = option + ' = ' + no_prompt[option]
-              print
-              conf.write(line + '\n')
-              continue
+    for line in iter(sample):
+        line = line.rstrip() # drop newlines
+        if advanced:
+            if line.startswith("#"):
+                if line.startswith("# "):
+                    # print these lines only if in interactive mode, they explain the upcoming option
+                    if conf_file == None:
+                        print line
+                else:
+                    # these lines are the options (generally), parse it and ask
+                    if ' = ' in line:
+                        option, default = line.split(' = ')
+                        option = option[1:] # drop the '#'
+                        if option in no_prompt:
+                            # We already know the answer, set it and move on.
+                            line = option + ' = ' + no_prompt[option]
+                            print
+                            conf.write(line + '\n')
+                            continue
 
-            if option in defaults:
-              default = defaults[option]
-            if conf_file != None:
-              try:
-                answer = answer_file["advanced"][option]
-              except KeyError:
-                print "[%s] was not found in answer file" % option
-                answer = None
-            else:
-              answer = raw_input('%s? [%s] ' % (option, default))
-            # This is stupid, but: the sample conf file contains "<None>" as
-            # the default for the password options. However, if you actually
-            # use "<None>" in an un-commented option, the osp installer
-            # blows up. It wants a blank line instead. Let's correct osp's
-            # bad examples so that this actually works.
-            if default == '<None>':
-                default = ''
-            if answer:
-              line = option + ' = ' + answer
-            else:
-              line = option + ' = ' + default
-            if conf_file == None: 
-              print
-    else: # not advanced
-      for option in defaults:
-        if line.startswith('#%s = ' % option):
-          line = option + ' = ' + defaults[option]
-      for option in no_prompt:
-        if line.startswith('#%s = ' % option):
-          line = option + ' = ' + no_prompt[option]
-    conf.write(line + '\n')
-  sample.close()
-  conf.close()
+                        if option in defaults:
+                            default = defaults[option]
+                        if conf_file != None:
+                            try:
+                                answer = answer_file["advanced"][option]
+                            except KeyError:
+                                print "[%s] was not found in answer file" % option
+                                answer = None
+                        else:
+                            answer = raw_input('%s? [%s] ' % (option, default))
+                        # This is stupid, but: the sample conf file contains "<None>" as
+                        # the default for the password options. However, if you actually
+                        # use "<None>" in an un-commented option, the osp installer
+                        # blows up. It wants a blank line instead. Let's correct osp's
+                        # bad examples so that this actually works.
+                        if default == '<None>':
+                                default = ''
+                        if answer:
+                            line = option + ' = ' + answer
+                        else:
+                            line = option + ' = ' + default
+                        if conf_file == None: 
+                            print
+        else: # not advanced
+            for option in defaults:
+                if line.startswith('#%s = ' % option):
+                    line = option + ' = ' + defaults[option]
+            for option in no_prompt:
+                if line.startswith('#%s = ' % option):
+                    line = option + ' = ' + no_prompt[option]
+        conf.write(line + '\n')
+    sample.close()
+    conf.close()
 
 def ip_num_to_addr(ip):
-  octets = []
-  octets.append((ip >> 24) & 0xff)
-  octets.append((ip >> 16) & 0xff)
-  octets.append((ip >> 8) & 0xff)
-  octets.append(ip & 0xff)
-  return '%d.%d.%d.%d' % tuple(octets)
+    octets = []
+    octets.append((ip >> 24) & 0xff)
+    octets.append((ip >> 16) & 0xff)
+    octets.append((ip >> 8) & 0xff)
+    octets.append(ip & 0xff)
+    return '%d.%d.%d.%d' % tuple(octets)
 
 def ip_addr_to_num(ip, netmask):
-  ip_number = 0
-  for octet in ip_addr.split('.'):
-    ip_number = (ip_number << 8) | int(octet)
-  ip_max = 0xffffffff
-  netmask_number = (ip_max << (32 - int(netmask))) & ip_max
-  ip_number = ip_number & netmask_number
-  return ip_number
+    ip_number = 0
+    for octet in ip_addr.split('.'):
+        ip_number = (ip_number << 8) | int(octet)
+    ip_max = 0xffffffff
+    netmask_number = (ip_max << (32 - int(netmask))) & ip_max
+    ip_number = ip_number & netmask_number
+    return ip_number
 
 # discover things about our network interfaces
 nics = ni.interfaces()
@@ -145,90 +145,90 @@ nics.remove('lo')
 
 nics_with_addresses = {}
 for nic in nics:
-  if ni.AF_INET in ni.ifaddresses(nic):
-    nics_with_addresses[nic] = ni.ifaddresses(nic)[ni.AF_INET][0]['addr']
+    if ni.AF_INET in ni.ifaddresses(nic):
+        nics_with_addresses[nic] = ni.ifaddresses(nic)[ni.AF_INET][0]['addr']
 
 if len(sys.argv) > 1: # getting nic ip addrs
-  if len(nics_with_addresses) == 0:
-    print "Warning: no network interfaces with IP Addresses were found. You will have to discover this machine's IP Address yourself later."
+    if len(nics_with_addresses) == 0:
+        print "Warning: no network interfaces with IP Addresses were found. You will have to discover this machine's IP Address yourself later."
+        exit()
+    if len(nics_with_addresses) > 1:
+        print "Warning: multiple network interfaces with IP Addresses were found. You will have to decide which is the correct IP Address yourself."
+    for nic in nics_with_addresses.keys():
+        print "%s: %s" % (nic, nics_with_addresses[nic])
     exit()
-  if len(nics_with_addresses) > 1:
-    print "Warning: multiple network interfaces with IP Addresses were found. You will have to decide which is the correct IP Address yourself."
-  for nic in nics_with_addresses.keys():
-    print "%s: %s" % (nic, nics_with_addresses[nic])
-  exit()
 
 
 # Check if we are using an answer file or not as specified in the parent script
 
 conf_file = os.environ.get('CONF_FILE')
 
-if conf_file != None:                 # Non Interactive Mode
-  with open(conf_file, 'r') as f:
-    answer_file = yaml.load(f)
-  gateway = answer_file["undercloud"]["gateway"]
-  ip_addr = answer_file["undercloud"]["ip_addr"]
-  provisioning_nic = answer_file["undercloud"]["provisioning_nic"]
-  undercloud_ip = answer_file["undercloud"]["undercloud_ip"]
-  advanced = answer_file["advanced"]["specify"]
-  admin_password = answer_file["password"]["admin_password"]
+if conf_file != None:                                 # Non Interactive Mode
+    with open(conf_file, 'r') as f:
+        answer_file = yaml.load(f)
+    gateway = answer_file["undercloud"]["gateway"]
+    ip_addr = answer_file["undercloud"]["ip_addr"]
+    provisioning_nic = answer_file["undercloud"]["provisioning_nic"]
+    undercloud_ip = answer_file["undercloud"]["undercloud_ip"]
+    advanced = answer_file["advanced"]["specify"]
+    admin_password = answer_file["password"]["admin_password"]
 
-  ip_addr, netmask = ip_addr.split('/')
+    ip_addr, netmask = ip_addr.split('/')
 
-  validateAll(ip_addr, netmask, undercloud_ip, gateway)
+    validateAll(ip_addr, netmask, undercloud_ip, gateway)
 
-  ip_number = ip_addr_to_num(ip_addr, netmask)
+    ip_number = ip_addr_to_num(ip_addr, netmask)
 
-  write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask, gateway, advanced, admin_password)
+    write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask, gateway, advanced, admin_password)
 
-  f = open('/tmp/network.tmp', 'w')
-  f.write("GATEWAY=%s" % gateway)
-  f.close
-  os.system('sudo mv /tmp/network.tmp /etc/sysconfig/network')
-  exit()
+    f = open('/tmp/network.tmp', 'w')
+    f.write("GATEWAY=%s" % gateway)
+    f.close
+    os.system('sudo mv /tmp/network.tmp /etc/sysconfig/network')
+    exit()
 
 # let's make a guess what the provisioning nic should be:
 # 1) no nics with no address, guess first nic (random)
 # 2) if there's only one nic with no address, that one
 # 3) multiple nics with no address, first one that starts with an 'e'
-#      (like eth0 or em0)
+#            (like eth0 or em0)
 # 4) if none of them start with an 'e', guess first one
 no_address_nics = sorted(list(set(nics).difference(set(nics_with_addresses.keys()))))
 
 if len(no_address_nics) == 0:
-  guessed_provisioning_nic = nics[0]
+    guessed_provisioning_nic = nics[0]
 elif len(no_address_nics) == 1:
-  guessed_provisioning_nic = no_address_nics[0]
+    guessed_provisioning_nic = no_address_nics[0]
 else:
-  for nanic in no_address_nics:
-    if nanic.startswith('e'):
-      guessed_provisioning_nic = nanic
-      break
-  else: # looped through, no hits
-      guessed_provisioning_nic = no_address_nics[0]
+    for nanic in no_address_nics:
+        if nanic.startswith('e'):
+            guessed_provisioning_nic = nanic
+            break
+    else: # looped through, no hits
+            guessed_provisioning_nic = no_address_nics[0]
 
 selected = False
 while not selected:
-  i = 1
-  for nic in nics:
-    print "%d: %s, MAC Addr: %s" % (i, nic, getHwAddr(nic))
-    if nic == guessed_provisioning_nic:
-      default = i
-    i += 1
-  selected = raw_input('Please select the Network Interface that is connected to your provisioning network [%d]: ' % default)
-  try:
-    if not selected:
-      selected = default
-    selected = int(selected)
-    if selected > len(nics):
-      raise ValueError
-  except ValueError:
-    # if they typed in the name of the nic...
-    if selected in nics:
-      selected = nics.index(selected) + 1
-    else:
-      selected = False
-      print "I'm sorry, I didn't understand that."
+    i = 1
+    for nic in nics:
+        print "%d: %s, MAC Addr: %s" % (i, nic, getHwAddr(nic))
+        if nic == guessed_provisioning_nic:
+            default = i
+        i += 1
+    selected = raw_input('Please select the Network Interface that is connected to your provisioning network [%d]: ' % default)
+    try:
+        if not selected:
+            selected = default
+        selected = int(selected)
+        if selected > len(nics):
+            raise ValueError
+    except ValueError:
+        # if they typed in the name of the nic...
+        if selected in nics:
+            selected = nics.index(selected) + 1
+        else:
+            selected = False
+            print "I'm sorry, I didn't understand that."
 
 provisioning_nic = nics[selected-1]
 
@@ -236,92 +236,92 @@ provisioning_nic = nics[selected-1]
 valid = False
 force_no_advanced = False
 while not valid:
-  print
-  input_str = raw_input('We require a block of IP Addresses that we can assign on your network. Please specify this block using standard slash notation: [192.0.2.0/24] ')
-  if not input_str:
-    input_str = '192.0.2.0/24'
-  if input_str.count('/') != 1:
-    print "I didn't understand that, please try again."
-    continue
-  ip_addr, netmask = input_str.split('/')
-  if isInvalidIP(ip_addr):
-    print "I didn't understand that IP Address, please try again."
-    continue
-  if isInvalidNetmask(netmask):
-    print "I didn't understand that netmask, please try again."
-    continue
-  try:
-    ip_number = 0
-    for octet in ip_addr.split('.'):
-      ip_number = (ip_number << 8) | int(octet)
-    ip_max = 0xffffffff
-    netmask_number = (ip_max << (32 - int(netmask))) & ip_max
-  except:
-    print "Something went wrong when parsing IP Address and netmask, please try again."
-    continue
-  if int(netmask) > 25:
-    print "Warning: if you don't specify a netmask of 25 or less we will not be able to use defaults for additional network parameters and you will be forced to configure them yourself."
-    force_no_advanced = raw_input('Are you sure that is the appropriate netmask? [Y/n] ')
-    if force_no_advanced in ['n', 'N', 'no', 'NO', 'No']:
-      force_no_advanced = False
-      continue
-    else:
-      force_no_advanced = True
-  ip_number = ip_number & netmask_number
-  valid = True
+    print
+    input_str = raw_input('We require a block of IP Addresses that we can assign on your network. Please specify this block using standard slash notation: [192.0.2.0/24] ')
+    if not input_str:
+        input_str = '192.0.2.0/24'
+    if input_str.count('/') != 1:
+        print "I didn't understand that, please try again."
+        continue
+    ip_addr, netmask = input_str.split('/')
+    if isInvalidIP(ip_addr):
+        print "I didn't understand that IP Address, please try again."
+        continue
+    if isInvalidNetmask(netmask):
+        print "I didn't understand that netmask, please try again."
+        continue
+    try:
+        ip_number = 0
+        for octet in ip_addr.split('.'):
+            ip_number = (ip_number << 8) | int(octet)
+        ip_max = 0xffffffff
+        netmask_number = (ip_max << (32 - int(netmask))) & ip_max
+    except:
+        print "Something went wrong when parsing IP Address and netmask, please try again."
+        continue
+    if int(netmask) > 25:
+        print "Warning: if you don't specify a netmask of 25 or less we will not be able to use defaults for additional network parameters and you will be forced to configure them yourself."
+        force_no_advanced = raw_input('Are you sure that is the appropriate netmask? [Y/n] ')
+        if force_no_advanced in ['n', 'N', 'no', 'NO', 'No']:
+            force_no_advanced = False
+            continue
+        else:
+            force_no_advanced = True
+    ip_number = ip_number & netmask_number
+    valid = True
 
 valid = False
 gateway = False
 while not valid:
-  print
-  gateway = raw_input('Please specify the IP Address of the network gateway. This is preferably the router that leads out to the larger network but will default to this machine if not changed, making this machine a critical piece of your OpenStack infrastructure. [%s] ' % ip_num_to_addr(ip_number + 1))
-  if not gateway:
-    gateway = ip_num_to_addr(ip_number + 1)
-    valid = True
-  else:
-    if isInvalidIP(gateway):
-      print "The specified network gateway is not a valid IP address, please try again"
-      valid = False
-    elif isInvalidSubnet(ip_addr, gateway):
-      print "Entered IP address not on the same subnet as the specified network, please try again."
-      valid = False
+    print
+    gateway = raw_input('Please specify the IP Address of the network gateway. This is preferably the router that leads out to the larger network but will default to this machine if not changed, making this machine a critical piece of your OpenStack infrastructure. [%s] ' % ip_num_to_addr(ip_number + 1))
+    if not gateway:
+        gateway = ip_num_to_addr(ip_number + 1)
+        valid = True
     else:
-      valid = True
+        if isInvalidIP(gateway):
+            print "The specified network gateway is not a valid IP address, please try again"
+            valid = False
+        elif isInvalidSubnet(ip_addr, gateway):
+            print "Entered IP address not on the same subnet as the specified network, please try again."
+            valid = False
+        else:
+            valid = True
 
 valid = False
 undercloud_ip = False
 while not valid:
-  print
-  undercloud_ip = raw_input('Please specify the IP address of the Openstack Director. Be sure that this IP is on the correct subnet and does not interfere with the block given above. [%s] ' % ip_num_to_addr(ip_number + 254))
-  if not undercloud_ip:
-    undercloud_ip = ip_num_to_addr(ip_number + 254)
-    valid = True
-  elif isInvalidIP(undercloud_ip):
-    print "I didn't understand that IP Address, please try again."
-    continue
-  elif isInvalidSubnet(ip_addr, undercloud_ip):
-    print "Entered IP address not on the same subnet as the network gateway, please try again."
-    valid = False
-  else:
-    valid = True
+    print
+    undercloud_ip = raw_input('Please specify the IP address of the Openstack Director. Be sure that this IP is on the correct subnet and does not interfere with the block given above. [%s] ' % ip_num_to_addr(ip_number + 254))
+    if not undercloud_ip:
+        undercloud_ip = ip_num_to_addr(ip_number + 254)
+        valid = True
+    elif isInvalidIP(undercloud_ip):
+        print "I didn't understand that IP Address, please try again."
+        continue
+    elif isInvalidSubnet(ip_addr, undercloud_ip):
+        print "Entered IP address not on the same subnet as the network gateway, please try again."
+        valid = False
+    else:
+        valid = True
 
 done = False
 while not done:
-  print
-  admin_password = raw_input('Please specify the admin password for this undercloud. When the installation is complete you will be able to log in to this undercloud with user "admin" and this password. If you leave it blank one will be randomly generated, and you can look it up later with "hiera admin_password". [<generate>] ')
-  if (not admin_password) or admin_password.isalnum(): # if blank or valid password
-    done = True
-  else:
-    print "Passwords must be alphanumeric. Please try again."
+    print
+    admin_password = raw_input('Please specify the admin password for this undercloud. When the installation is complete you will be able to log in to this undercloud with user "admin" and this password. If you leave it blank one will be randomly generated, and you can look it up later with "hiera admin_password". [<generate>] ')
+    if (not admin_password) or admin_password.isalnum(): # if blank or valid password
+        done = True
+    else:
+        print "Passwords must be alphanumeric. Please try again."
 
 advanced = False
 if not force_no_advanced:
-  print
-  advanced = raw_input('Would you like to specify advanced network and password configuration? (else defaults will be accepted and installation will begin) [y/N] ')
-  if advanced in ['y','Y','yes','YES','Yes']:
-    advanced = True
-  else:
-    advanced = False
+    print
+    advanced = raw_input('Would you like to specify advanced network and password configuration? (else defaults will be accepted and installation will begin) [y/N] ')
+    if advanced in ['y','Y','yes','YES','Yes']:
+        advanced = True
+    else:
+        advanced = False
 
 # Sanity check even though we should have caught invalid input at prompt time
 validateAll(ip_addr, netmask, undercloud_ip, gateway)

@@ -8,21 +8,25 @@ import struct
 import sys
 import yaml
 
-# Thanks http://stackoverflow.com/questions/159137/getting-mac-address
+
 def getHwAddr(ifname):
+    # Thanks http://stackoverflow.com/questions/159137/getting-mac-address
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     info = fcntl.ioctl(s.fileno(), 0x8927,    struct.pack('256s', ifname[:15]))
     return ':'.join(['%02x' % ord(char) for char in info[18:24]])
+
 
 def isInvalidIP(ip):
     if re.match('^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$', ip):
         return False
     return True
 
+
 def isInvalidNetmask(netmask):
     if re.match('^[0-9]{1,2}$', netmask):
         return False
     return True
+
 
 def isInvalidSubnet(ip_addr1, ip_addr2):
     subnet1 = ip_addr1.split('.')
@@ -35,6 +39,7 @@ def isInvalidSubnet(ip_addr1, ip_addr2):
             continue
         return True
     return False
+
 
 def validateAll(ip_addr, netmask, undercloud_ip, gateway):
     if isInvalidIP(ip_addr):
@@ -55,6 +60,7 @@ def validateAll(ip_addr, netmask, undercloud_ip, gateway):
     if isInvalidSubnet(ip_addr, gateway):
         print "Specified network gateway is not on the correct subnet"
         os._exit(1)
+
 
 def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask, gateway, advanced, admin_password):
     sample = open('/usr/share/instack-undercloud/undercloud.conf.sample', 'r')
@@ -128,6 +134,7 @@ def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask, g
     sample.close()
     conf.close()
 
+
 def ip_num_to_addr(ip):
     octets = []
     octets.append((ip >> 24) & 0xff)
@@ -135,6 +142,7 @@ def ip_num_to_addr(ip):
     octets.append((ip >> 8) & 0xff)
     octets.append(ip & 0xff)
     return '%d.%d.%d.%d' % tuple(octets)
+
 
 def ip_addr_to_num(ip, netmask):
     ip_number = 0

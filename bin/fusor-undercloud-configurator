@@ -77,7 +77,8 @@ def validate_all(ip_addr, netmask, undercloud_ip, gateway):
         sys.exit(1)
 
 
-def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask, gateway, advanced, admin_password):
+def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask,
+                          gateway, advanced, admin_password):
     """
     Write out the undercloud configuration file
     """
@@ -96,14 +97,15 @@ def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask, g
     defaults['dhcp_end'] = ip_num_to_addr(ip_number + 24)
     defaults['network_cidr'] = ip_num_to_addr(ip_number) + '/' + netmask
     defaults['network_gateway'] = gateway
-    defaults['discovery_iprange'] = ip_num_to_addr(ip_number + 100) + ',' + ip_num_to_addr(ip_number + 120)
+    defaults['discovery_iprange'] = ip_num_to_addr(ip_number + 100) + ',' + \
+        ip_num_to_addr(ip_number + 120)
 
     for line in iter(sample):
         line = line.rstrip()  # drop newlines
         if advanced:
             if line.startswith("#"):
                 if line.startswith("# "):
-                    # print these lines only if in interactive mode, they explain the upcoming option
+                    # print only if in interactive mode, they explain the upcoming option
                     if conf_file is None:
                         print line
                 else:
@@ -188,10 +190,12 @@ for nic in nics:
 
 if len(sys.argv) > 1:  # getting nic ip addrs
     if len(nics_with_addresses) == 0:
-        print "Warning: no network interfaces with IP Addresses were found. You will have to discover this machine's IP Address yourself later."
+        print "Warning: no network interfaces with IP Addresses were found. You will have to " \
+              "discover this machine's IP Address yourself later."
         exit()
     if len(nics_with_addresses) > 1:
-        print "Warning: multiple network interfaces with IP Addresses were found. You will have to decide which is the correct IP Address yourself."
+        print "Warning: multiple network interfaces with IP Addresses were found. You will have " \
+              "to decide which is the correct IP Address yourself."
     for nic in nics_with_addresses.keys():
         print "%s: %s" % (nic, nics_with_addresses[nic])
     exit()
@@ -217,7 +221,8 @@ if conf_file is not None:                                 # Non Interactive Mode
 
     ip_number = ip_addr_to_num(ip_addr, netmask)
 
-    write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask, gateway, advanced, admin_password)
+    write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask,
+                          gateway, advanced, admin_password)
 
     f = open('/tmp/network.tmp', 'w')
     f.write("GATEWAY=%s" % gateway)
@@ -253,7 +258,9 @@ while not selected:
         if nic == guessed_provisioning_nic:
             default = i
         i += 1
-    selected = raw_input('Please select the Network Interface that is connected to your provisioning network [%d]: ' % default)
+    selected = raw_input(
+        'Please select the Network Interface that is connected to your provisioning network [%d]: '
+        % default)
     try:
         if not selected:
             selected = default
@@ -275,7 +282,10 @@ valid = False
 force_no_advanced = False
 while not valid:
     print
-    input_str = raw_input('We require a block of IP Addresses that we can assign on your network. Please specify this block using standard slash notation: [192.0.2.0/24] ')
+    input_str = raw_input(
+        'We require a block of IP Addresses that we can assign on your network.  Please specify '
+        'this block using standard slash notation: [192.0.2.0/24] ')
+
     if not input_str:
         input_str = '192.0.2.0/24'
     if input_str.count('/') != 1:
@@ -298,7 +308,10 @@ while not valid:
         print "Something went wrong when parsing IP Address and netmask, please try again."
         continue
     if int(netmask) > 25:
-        print "Warning: if you don't specify a netmask of 25 or less we will not be able to use defaults for additional network parameters and you will be forced to configure them yourself."
+        print "Warning: if you don't specify a netmask of 25 or less we will not be able to use " \
+              "defaults for additional network parameters and you will be forced to configure " \
+              "them yourself."
+
         force_no_advanced = raw_input('Are you sure that is the appropriate netmask? [Y/n] ')
         if force_no_advanced in ['n', 'N', 'no', 'NO', 'No']:
             force_no_advanced = False
@@ -312,7 +325,12 @@ valid = False
 gateway = False
 while not valid:
     print
-    gateway = raw_input('Please specify the IP Address of the network gateway. This is preferably the router that leads out to the larger network but will default to this machine if not changed, making this machine a critical piece of your OpenStack infrastructure. [%s] ' % ip_num_to_addr(ip_number + 1))
+    gateway = raw_input(
+        'Please specify the IP Address of the network gateway. This is preferably the router that '
+        'leads out to the larger network but will default to this machine if not changed, making '
+        'this machine a critical piece of your OpenStack infrastructure. [%s] ' %
+        ip_num_to_addr(ip_number + 1))
+
     if not gateway:
         gateway = ip_num_to_addr(ip_number + 1)
         valid = True
@@ -321,7 +339,8 @@ while not valid:
             print "The specified network gateway is not a valid IP address, please try again"
             valid = False
         elif is_invalid_subnet(ip_addr, gateway):
-            print "Entered IP address not on the same subnet as the specified network, please try again."
+            print "Entered IP address not on the same subnet as the " \
+                  "specified network, please try again."
             valid = False
         else:
             valid = True
@@ -330,7 +349,11 @@ valid = False
 undercloud_ip = False
 while not valid:
     print
-    undercloud_ip = raw_input('Please specify the IP address of the Openstack Director. Be sure that this IP is on the correct subnet and does not interfere with the block given above. [%s] ' % ip_num_to_addr(ip_number + 254))
+    undercloud_ip = raw_input(
+        'Please specify the IP address of the Openstack Director. Be sure that this IP is on the '
+        'correct subnet and does not interfere with the block given above. [%s] ' %
+        ip_num_to_addr(ip_number + 254))
+
     if not undercloud_ip:
         undercloud_ip = ip_num_to_addr(ip_number + 254)
         valid = True
@@ -346,7 +369,12 @@ while not valid:
 done = False
 while not done:
     print
-    admin_password = raw_input('Please specify the admin password for this undercloud. When the installation is complete you will be able to log in to this undercloud with user "admin" and this password. If you leave it blank one will be randomly generated, and you can look it up later with "hiera admin_password". [<generate>] ')
+    admin_password = raw_input(
+        'Please specify the admin password for this undercloud. When the installation is complete '
+        'you will be able to log in to this undercloud with user "admin" and this password. If you '
+        'leave it blank one will be randomly generated, and you can look it up later with "hiera '
+        'admin_password". [<generate>] ')
+
     if (not admin_password) or admin_password.isalnum():  # if blank or valid password
         done = True
     else:
@@ -355,7 +383,10 @@ while not done:
 advanced = False
 if not force_no_advanced:
     print
-    advanced = raw_input('Would you like to specify advanced network and password configuration? (else defaults will be accepted and installation will begin) [y/N] ')
+    advanced = raw_input(
+        'Would you like to specify advanced network and password configuration?  (else defaults '
+        'will be accepted and installation will begin) [y/N] ')
+
     if advanced in ['y', 'Y', 'yes', 'YES', 'Yes']:
         advanced = True
     else:
@@ -364,7 +395,8 @@ if not force_no_advanced:
 # Sanity check even though we should have caught invalid input at prompt time
 validate_all(ip_addr, netmask, undercloud_ip, gateway)
 
-write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask, gateway, advanced, admin_password)
+write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask,
+                      gateway, advanced, admin_password)
 
 f = open('/tmp/network.tmp', 'w')
 f.write("GATEWAY=%s" % gateway)

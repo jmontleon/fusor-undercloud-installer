@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import netifaces as ni
 import fcntl
+import ipaddress
 import os
 import re
 import socket
@@ -37,23 +38,36 @@ def is_invalid_netmask(netmask):
     return True
 
 
-def is_invalid_subnet(ip_addr1, ip_addr2):
+def get_dhcp_range(ip_addr1, ip_addr2, network):
     """
-    Return true if the subnet is invalid.
+    Return dhcp start and ending address
     """
-    subnet1 = ip_addr1.split('.')
-    del subnet1[-1]
-    subnet2 = ip_addr2.split('.')
-    del subnet2[-1]
+    # Based on assigned addresses, get the 3 blocks of addresses available
+    blocks = {'block1': int(ip_addr1) - int(network.network_address),
+              'block2': int(ip_addr2) - int(ip_addr1),
+              'block3': int(network.broadcast_address) - int(ip_addr2)}
 
-    for i in range(0, 3):
-        if subnet1[i] == subnet2[i]:
-            continue
-        return True
-    return False
+    # Find largest block available
+    largest_block = max(blocks, key=blocks.get)
+    if largest_block == 'block1':
+        return network.network_address + 1, ip_addr1 - 1
+    elif largest_block == 'block2':
+        return ip_addr1 + 1, ip_addr2 - 1
+    return ip_addr2 + 1, network.broadcast_address - 1
 
 
-def validate_all(ip_addr, netmask, undercloud_ip, gateway):
+def get_discovery_range(dhcp_start, dhcp_end):
+    """
+    Return starting address of discovery range
+    """
+    # Starting address will be the second half of the dhcp range
+    difference = int(dhcp_end) - int(dhcp_start)
+    half = difference / 2
+    discovery_start = dhcp_start + half
+    return discovery_start
+
+
+def validate_all(ip_addr, netmask, undercloud_ip, gateway, network):
     """
     Validate all of the given options
     """
@@ -69,36 +83,50 @@ def validate_all(ip_addr, netmask, undercloud_ip, gateway):
     if is_invalid_ip(gateway):
         print "Specified network gateway is not valid"
         sys.exit(1)
-    if is_invalid_subnet(ip_addr, undercloud_ip):
+    if undercloud_ip == gateway:
+        print "Specified network gateway can not have same IP address as the undercloud"
+        sys.exit(1)
+    if not ipaddress.IPv4Address(unicode(undercloud_ip)) in network:
         print "Specified undercloud IP address is not on the correct subnet"
         sys.exit(1)
-    if is_invalid_subnet(ip_addr, gateway):
+    if not ipaddress.IPv4Address(unicode(gateway)) in network:
         print "Specified network gateway is not on the correct subnet"
         sys.exit(1)
 
 
 def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask,
-                          gateway, advanced, admin_password):
+                          gateway, dhcp_start, dhcp_end, advanced, admin_password):
     """
     Write out the undercloud configuration file
     """
     sample = open('/usr/share/instack-undercloud/undercloud.conf.sample', 'r')
     conf = open('/home/stack/undercloud.conf', 'w+')
+
+    # Get discovery range by splitting the total dhcp range in half
+    discovery_start = get_discovery_range(dhcp_start, dhcp_end)
+    discovery_end = dhcp_end
+    dhcp_end = discovery_start - 1
+
+    # Set vip addresses to the first two in the dhcp range and adjust the range
+    undercloud_public_vip = dhcp_start
+    undercloud_admin_vip = dhcp_start + 1
+    dhcp_start = dhcp_start + 2
+
     no_prompt = {}
     no_prompt['local_interface'] = provisioning_nic
     no_prompt['undercloud_admin_password'] = admin_password
     defaults = {}
     defaults['image_path'] = '/home/stack/images'
     defaults['local_ip'] = undercloud_ip + '/' + netmask
-    defaults['undercloud_public_vip'] = ip_num_to_addr(ip_number + 2)
-    defaults['undercloud_admin_vip'] = ip_num_to_addr(ip_number + 3)
+    defaults['undercloud_public_vip'] = str(undercloud_public_vip)
+    defaults['undercloud_admin_vip'] = str(undercloud_admin_vip)
     defaults['masquerade_network'] = ip_num_to_addr(ip_number) + '/' + netmask
-    defaults['dhcp_start'] = ip_num_to_addr(ip_number + 5)
-    defaults['dhcp_end'] = ip_num_to_addr(ip_number + 24)
+    defaults['dhcp_start'] = str(dhcp_start)
+    defaults['dhcp_end'] = str(dhcp_end)
     defaults['network_cidr'] = ip_num_to_addr(ip_number) + '/' + netmask
     defaults['network_gateway'] = gateway
-    defaults['discovery_iprange'] = ip_num_to_addr(ip_number + 100) + ',' + \
-        ip_num_to_addr(ip_number + 120)
+    defaults['discovery_iprange'] = str(discovery_start) + ',' + \
+        str(discovery_end)
 
     for line in iter(sample):
         line = line.rstrip()  # drop newlines
@@ -215,14 +243,29 @@ if conf_file is not None:                                 # Non Interactive Mode
     advanced = answer_file["advanced"]["specify"]
     admin_password = answer_file["password"]["admin_password"]
 
+    # Create network range based on given ip_addr
+    network = ipaddress.ip_network(unicode(ip_addr), strict=False)
+
     ip_addr, netmask = ip_addr.split('/')
 
-    validate_all(ip_addr, netmask, undercloud_ip, gateway)
+    # Set ip_addr equal to the network address in case netmask was not what we expected
+    ip_addr = str(network.network_address)
+
+    validate_all(ip_addr, netmask, undercloud_ip, gateway, network)
 
     ip_number = ip_addr_to_num(ip_addr, netmask)
 
+    # Get dhcp range dependent upon gateway and undercloud addresses
+    IPv4Gateway = ipaddress.IPv4Address(unicode(gateway))
+    IPv4Undercloud_ip = ipaddress.IPv4Address(unicode(undercloud_ip))
+
+    if IPv4Gateway < IPv4Undercloud_ip:
+        dhcp_start, dhcp_end = get_dhcp_range(IPv4Gateway, IPv4Undercloud_ip, network)
+    else:
+        dhcp_start, dhcp_end = get_dhcp_range(IPv4Undercloud_ip, IPv4Gateway, network)
+
     write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask,
-                          gateway, advanced, admin_password)
+                          gateway, dhcp_start, dhcp_end, advanced, admin_password)
 
     f = open('/tmp/network.tmp', 'w')
     f.write("GATEWAY=%s" % gateway)
@@ -284,10 +327,10 @@ while not valid:
     print
     input_str = raw_input(
         'We require a block of IP Addresses that we can assign on your network.  Please specify '
-        'this block using standard slash notation: [192.0.2.0/24] ')
+        'this block using standard slash notation: [192.168.150.0/24] ')
 
     if not input_str:
-        input_str = '192.0.2.0/24'
+        input_str = '192.168.150.0/24'
     if input_str.count('/') != 1:
         print "I didn't understand that, please try again."
         continue
@@ -321,29 +364,9 @@ while not valid:
     ip_number = ip_number & netmask_number
     valid = True
 
-valid = False
-gateway = False
-while not valid:
-    print
-    gateway = raw_input(
-        'Please specify the IP Address of the network gateway. This is preferably the router that '
-        'leads out to the larger network but will default to this machine if not changed, making '
-        'this machine a critical piece of your OpenStack infrastructure. [%s] ' %
-        ip_num_to_addr(ip_number + 1))
-
-    if not gateway:
-        gateway = ip_num_to_addr(ip_number + 1)
-        valid = True
-    else:
-        if is_invalid_ip(gateway):
-            print "The specified network gateway is not a valid IP address, please try again"
-            valid = False
-        elif is_invalid_subnet(ip_addr, gateway):
-            print "Entered IP address not on the same subnet as the " \
-                  "specified network, please try again."
-            valid = False
-        else:
-            valid = True
+network = ipaddress.ip_network(unicode(input_str), strict=False)
+ip_addr = str(network.network_address)
+cidr_network = input_str
 
 valid = False
 undercloud_ip = False
@@ -352,19 +375,55 @@ while not valid:
     undercloud_ip = raw_input(
         'Please specify the IP address of the Openstack Director. Be sure that this IP is on the '
         'correct subnet and does not interfere with the block given above. [%s] ' %
-        ip_num_to_addr(ip_number + 254))
+        str(network.broadcast_address - 1))
 
     if not undercloud_ip:
-        undercloud_ip = ip_num_to_addr(ip_number + 254)
+        undercloud_ip = str(network.broadcast_address - 1)
         valid = True
     elif is_invalid_ip(undercloud_ip):
         print "I didn't understand that IP Address, please try again."
         continue
-    elif is_invalid_subnet(ip_addr, undercloud_ip):
-        print "Entered IP address not on the same subnet as the network gateway, please try again."
+    elif not ipaddress.IPv4Address(unicode(undercloud_ip)) in network:
+        print "Entered IP address is not in the valid network range, please try again."
         valid = False
     else:
         valid = True
+
+valid = False
+gateway = False
+
+# Check if our default address was taken by the undercloud IP
+# If so, lets use the default we suggest for the undercloud
+if undercloud_ip == str(network.network_address + 1):
+    suggestion = str(network.broadcast_address - 1)
+else:
+    suggestion = str(network.network_address + 1)
+
+while not valid:
+    print
+    gateway = raw_input(
+        'Please specify the IP Address of the network gateway. This is preferably the router that '
+        'leads out to the larger network but will default to this machine if not changed, making '
+        'this machine a critical piece of your OpenStack infrastructure. [%s] ' %
+        suggestion)
+
+    if not gateway:
+        gateway = suggestion
+        valid = True
+    else:
+        if is_invalid_ip(gateway):
+            print "The specified network gateway is not a valid IP address, please try again"
+            valid = False
+        elif not ipaddress.IPv4Address(unicode(gateway)) in network:
+            print "Entered IP address not in the" \
+                  "specified network range, please try again."
+            valid = False
+        elif gateway == undercloud_ip:
+            print "Gateway IP address must be different than the assigned undercloud IP. " \
+                  "Please try again"
+            valid = False
+        else:
+            valid = True
 
 done = False
 while not done:
@@ -393,10 +452,19 @@ if not force_no_advanced:
         advanced = False
 
 # Sanity check even though we should have caught invalid input at prompt time
-validate_all(ip_addr, netmask, undercloud_ip, gateway)
+validate_all(ip_addr, netmask, undercloud_ip, gateway, network)
+
+# Get dhcp range based on gateway and undercloud addresses
+IPv4Gateway = ipaddress.IPv4Address(unicode(gateway))
+IPv4Undercloud_ip = ipaddress.IPv4Address(unicode(undercloud_ip))
+
+if IPv4Gateway < IPv4Undercloud_ip:
+    dhcp_start, dhcp_end = get_dhcp_range(IPv4Gateway, IPv4Undercloud_ip, network)
+else:
+    dhcp_start, dhcp_end = get_dhcp_range(IPv4Undercloud_ip, IPv4Gateway, network)
 
 write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask,
-                      gateway, advanced, admin_password)
+                      gateway, dhcp_start, dhcp_end, advanced, admin_password)
 
 f = open('/tmp/network.tmp', 'w')
 f.write("GATEWAY=%s" % gateway)

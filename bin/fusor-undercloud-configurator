@@ -38,6 +38,35 @@ def is_invalid_netmask(netmask):
     return True
 
 
+def get_dhcp_range(ip_addr1, ip_addr2, network):
+    """
+    Return dhcp start and ending address
+    """
+    # Based on assigned addresses, get the 3 blocks of addresses available
+    blocks = {'block1': int(ip_addr1) - int(network.network_address),
+              'block2': int(ip_addr2) - int(ip_addr1),
+              'block3': int(network.broadcast_address) - int(ip_addr2)}
+
+    # Find largest block available
+    largest_block = max(blocks, key=blocks.get)
+    if largest_block == 'block1':
+        return network.network_address + 1, ip_addr1 - 1
+    elif largest_block == 'block2':
+        return ip_addr1 + 1, ip_addr2 - 1
+    return ip_addr2 + 1, network.broadcast_address - 1
+
+
+def get_discovery_range(dhcp_start, dhcp_end):
+    """
+    Return starting address of discovery range
+    """
+    # Starting address will be the second half of the dhcp range
+    difference = int(dhcp_end) - int(dhcp_start)
+    half = difference / 2
+    discovery_start = dhcp_start + half
+    return discovery_start
+
+
 def validate_all(ip_addr, netmask, undercloud_ip, gateway, network):
     """
     Validate all of the given options
@@ -65,28 +94,39 @@ def validate_all(ip_addr, netmask, undercloud_ip, gateway, network):
         sys.exit(1)
 
 
-def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask, 
-                          gateway, advanced, admin_password):
+def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask,
+                          gateway, dhcp_start, dhcp_end, advanced, admin_password):
     """
     Write out the undercloud configuration file
     """
     sample = open('/usr/share/instack-undercloud/undercloud.conf.sample', 'r')
     conf = open('/home/stack/undercloud.conf', 'w+')
+
+    # Get discovery range by splitting the total dhcp range in half
+    discovery_start = get_discovery_range(dhcp_start, dhcp_end)
+    discovery_end = dhcp_end
+    dhcp_end = discovery_start - 1
+
+    # Set vip addresses to the first two in the dhcp range and adjust the range
+    undercloud_public_vip = dhcp_start
+    undercloud_admin_vip = dhcp_start + 1
+    dhcp_start = dhcp_start + 2
+
     no_prompt = {}
     no_prompt['local_interface'] = provisioning_nic
     no_prompt['undercloud_admin_password'] = admin_password
     defaults = {}
     defaults['image_path'] = '/home/stack/images'
     defaults['local_ip'] = undercloud_ip + '/' + netmask
-    defaults['undercloud_public_vip'] = ip_num_to_addr(ip_number + 2)
-    defaults['undercloud_admin_vip'] = ip_num_to_addr(ip_number + 3)
+    defaults['undercloud_public_vip'] = str(undercloud_public_vip)
+    defaults['undercloud_admin_vip'] = str(undercloud_admin_vip)
     defaults['masquerade_network'] = ip_num_to_addr(ip_number) + '/' + netmask
-    defaults['dhcp_start'] = ip_num_to_addr(ip_number + 5)
-    defaults['dhcp_end'] = ip_num_to_addr(ip_number + 24)
+    defaults['dhcp_start'] = str(dhcp_start)
+    defaults['dhcp_end'] = str(dhcp_end)
     defaults['network_cidr'] = ip_num_to_addr(ip_number) + '/' + netmask
     defaults['network_gateway'] = gateway
-    defaults['discovery_iprange'] = ip_num_to_addr(ip_number + 100) + ',' + \
-        ip_num_to_addr(ip_number + 120)
+    defaults['discovery_iprange'] = str(discovery_start) + ',' + \
+        str(discovery_end)
 
     for line in iter(sample):
         line = line.rstrip()  # drop newlines
@@ -215,8 +255,17 @@ if conf_file is not None:                                 # Non Interactive Mode
 
     ip_number = ip_addr_to_num(ip_addr, netmask)
 
+    # Get dhcp range dependent upon gateway and undercloud addresses
+    IPv4Gateway = ipaddress.IPv4Address(unicode(gateway))
+    IPv4Undercloud_ip = ipaddress.IPv4Address(unicode(undercloud_ip))
+
+    if IPv4Gateway < IPv4Undercloud_ip:
+        dhcp_start, dhcp_end = get_dhcp_range(IPv4Gateway, IPv4Undercloud_ip, network)
+    else:
+        dhcp_start, dhcp_end = get_dhcp_range(IPv4Undercloud_ip, IPv4Gateway, network)
+
     write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask,
-                          gateway, advanced, admin_password)
+                          gateway, dhcp_start, dhcp_end, advanced, admin_password)
 
     f = open('/tmp/network.tmp', 'w')
     f.write("GATEWAY=%s" % gateway)
@@ -329,7 +378,7 @@ while not valid:
         str(network.broadcast_address - 1))
 
     if not undercloud_ip:
-        undercloud_ip = unicode(str(network.broadcast_address - 1))
+        undercloud_ip = str(network.broadcast_address - 1)
         valid = True
     elif is_invalid_ip(undercloud_ip):
         print "I didn't understand that IP Address, please try again."
@@ -342,16 +391,24 @@ while not valid:
 
 valid = False
 gateway = False
+
+# Check if our default address was taken by the undercloud IP
+# If so, lets use the default we suggest for the undercloud
+if undercloud_ip == str(network.network_address + 1):
+    suggestion = str(network.broadcast_address - 1)
+else:
+    suggestion = str(network.network_address + 1)
+
 while not valid:
     print
     gateway = raw_input(
         'Please specify the IP Address of the network gateway. This is preferably the router that '
         'leads out to the larger network but will default to this machine if not changed, making '
         'this machine a critical piece of your OpenStack infrastructure. [%s] ' %
-        str(network.network_address + 1))
+        suggestion)
 
     if not gateway:
-        gateway = str(network.network_address + 1)
+        gateway = suggestion
         valid = True
     else:
         if is_invalid_ip(gateway):
@@ -397,8 +454,17 @@ if not force_no_advanced:
 # Sanity check even though we should have caught invalid input at prompt time
 validate_all(ip_addr, netmask, undercloud_ip, gateway, network)
 
-write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask, 
-                      gateway, advanced, admin_password)
+# Get dhcp range based on gateway and undercloud addresses
+IPv4Gateway = ipaddress.IPv4Address(unicode(gateway))
+IPv4Undercloud_ip = ipaddress.IPv4Address(unicode(undercloud_ip))
+
+if IPv4Gateway < IPv4Undercloud_ip:
+    dhcp_start, dhcp_end = get_dhcp_range(IPv4Gateway, IPv4Undercloud_ip, network)
+else:
+    dhcp_start, dhcp_end = get_dhcp_range(IPv4Undercloud_ip, IPv4Gateway, network)
+
+write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask,
+                      gateway, dhcp_start, dhcp_end, advanced, admin_password)
 
 f = open('/tmp/network.tmp', 'w')
 f.write("GATEWAY=%s" % gateway)

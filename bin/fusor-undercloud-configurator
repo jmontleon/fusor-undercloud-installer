@@ -155,7 +155,7 @@ def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask,
                                 answer = answer_file["advanced"][option]
                             except KeyError:
                                 print "[%s] was not found in answer file" % option
-                                answer is None
+                                answer = None
                         else:
                             answer = raw_input('%s? [%s] ' % (option, default))
                         # This is stupid, but: the sample conf file contains "<None>" as

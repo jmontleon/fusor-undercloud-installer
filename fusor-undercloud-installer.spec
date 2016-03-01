@@ -8,10 +8,11 @@ License: 	GPLv3+
 URL: 		https://github.com/fusor/fusor-undercloud-installer
 Source0: 
 
-Requires:	python(abi) = 2.7
-Requires:	ruby193-rubygem-egon
-Requires:	python-netifaces
-BuildArch	noarch
+Requires: python(abi) = 2.7
+Requires: ruby193-rubygem-egon
+Requires: python-ipaddress
+Requires: python-netifaces
+BuildArch noarch
 
 %description
 Fusor Undercloud Installer

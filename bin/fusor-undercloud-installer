@@ -112,17 +112,7 @@ enabled=1" > /etc/yum.repos.d/fake.repo
     fi
     if [[  $NAMESERVER =~ $ValidIpAddressRegex  ]]
     then
-      echo "Checking if nameserver is reachable..."
-      if ping -c 1 $NAMESERVER &> /dev/null
-      then
-        echo "Successfully pinged nameserver"
-        ValidInput=true
-      else
-        echo "Could not reach nameserver, please check that the server address is valid"
-        if [ $interactive == false ]; then
-          exit
-        fi
-      fi      
+      echo "Nameserver IP address is valid"
     else
       echo "Specified nameserver is not a valid IP address"
       if [ $interactive == false ]; then

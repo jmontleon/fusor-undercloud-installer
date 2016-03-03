@@ -113,6 +113,10 @@ enabled=1" > /etc/yum.repos.d/fake.repo
     if [[  $NAMESERVER =~ $ValidIpAddressRegex  ]]
     then
       echo "Nameserver IP address is valid"
+<<<<<<< HEAD
+      ValidInput=true
+=======
+>>>>>>> daed409d0b9b757d2d278d48a2f121b0969a0ad5
     else
       echo "Specified nameserver is not a valid IP address"
       if [ $interactive == false ]; then

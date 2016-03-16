@@ -169,6 +169,8 @@ enabled=1" > /etc/yum.repos.d/fake.repo
     /usr/lib/python2.7/site-packages/ironic/drivers/modules/ipxe_config.template \
     /httpboot/*.ipxe
 
+  openstack-service restart swift
+
   # Echo out ip addr and password
   echo "Installation complete!"
   echo

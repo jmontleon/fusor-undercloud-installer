@@ -415,7 +415,7 @@ while not valid:
             print "The specified network gateway is not a valid IP address, please try again"
             valid = False
         elif not ipaddress.IPv4Address(unicode(gateway)) in network:
-            print "Entered IP address not in the" \
+            print "Entered IP address not in the " \
                   "specified network range, please try again."
             valid = False
         elif gateway == undercloud_ip:

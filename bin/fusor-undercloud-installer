@@ -38,7 +38,6 @@ fusor_undercloud_install() {
   echo "stack ALL=(root) NOPASSWD:ALL" >> /etc/sudoers.d/stack
   chmod 0440 /etc/sudoers.d/stack
 
-  sudo -u stack mkdir -p /home/stack/images
   sudo -u stack mkdir -p /home/stack/templates
 
   # Create a stupid bogus yum repo so that yum won't exit with an error status
@@ -136,40 +135,26 @@ enabled=1" > /etc/yum.repos.d/fake.repo
 
   # call out to egon to run the undercloud installer
   cd /home/stack
-  sudo -u stack scl enable ruby193 "undercloud-install-local.rb" # call egon to do the install
+  sudo -u stack scl enable tfm "undercloud-install-local.rb" # call egon to do the install
 
   # Delete the stupid bogus repo
   rm -rf /tmp/repodata
   rm -f /etc/yum.repos.d/fake.repo
 
-  # set undercloud discoverd timeout value to a more sane value
-  grep -q "^timeout" /etc/ironic-discoverd/discoverd.conf || sed -i.orig 's/\[discoverd\]/&\ntimeout = 300/' /etc/ironic-discoverd/discoverd.conf
-
-  # untar the overcloud images
-  echo "Importing Overcloud images."
-  cd /home/stack/images
-  for a in `ls -1 /root/images/*.tar`; do
-    tar -xf $a
-  done
-  chown stack:stack /home/stack/images/*
-
-  # Upload the overcloud images
-  cd /home/stack/images
-  source /home/stack/stackrc
-  openstack overcloud image upload
-
   # Set DNS server
+  source /home/stack/stackrc
   NETWORK_ID=`neutron subnet-list | grep start | awk '{print $2}'`
   neutron subnet-update $NETWORK_ID --dns-nameserver $NAMESERVER
 
-  #Try to handle 1234601 a little better for the time being
-  sed -i 's|${mac|${net0/mac|g' \
-    /usr/share/instack-undercloud/ironic-discoverd/os-apply-config/httpboot/discoverd.ipxe \
-    /usr/lib/python2.7/site-packages/ironic/drivers/modules/boot.ipxe \
-    /usr/lib/python2.7/site-packages/ironic/drivers/modules/ipxe_config.template \
-    /httpboot/*.ipxe
-
   openstack-service restart swift
+
+  #We do not use these and do not want them
+  nova flavor-delete baremetal
+  nova flavor-delete block-storage
+  nova flavor-delete ceph-storage
+  nova flavor-delete swift-storage
+  nova flavor-delete compute
+  nova flavor-delete control
 
   # Echo out ip addr and password
   echo "Installation complete!"

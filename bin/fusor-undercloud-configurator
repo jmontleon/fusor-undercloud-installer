@@ -125,7 +125,7 @@ def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask,
     defaults['dhcp_end'] = str(dhcp_end)
     defaults['network_cidr'] = ip_num_to_addr(ip_number) + '/' + netmask
     defaults['network_gateway'] = gateway
-    defaults['discovery_iprange'] = str(discovery_start) + ',' + \
+    defaults['inspection_iprange'] = str(discovery_start) + ',' + \
         str(discovery_end)
 
     for line in iter(sample):

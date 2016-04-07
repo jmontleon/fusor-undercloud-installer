@@ -72,19 +72,28 @@ enabled=1" > /etc/yum.repos.d/fake.repo
   ValidIpAddressRegex='^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$'
   ValidInput=false
 
+  # BZ 1306032: to handle empty input, we can't use the same variable as the
+  # prompt. And using the environment $HOSTNAME as the variable is not a good
+  # idea.
+  HOSTPROMPT=$HOSTNAME
   while [ $ValidInput == false ]; do
     if [ $interactive == true ]; then
-      read -e -p "Set your resolvable Fully Qualified Domain Name: " -i $HOSTNAME HOSTNAME
+      read -e -p "Set your resolvable Fully Qualified Domain Name: " -i $HOSTPROMPT HOST
     else
       # Grab the desired hostname from answer file
-      HOSTNAME=`grep ^hostname $CONF_FILE | awk '{print $2}'`
+      HOST=`grep ^hostname $CONF_FILE | awk '{print $2}'`
     fi
 
-    if [[ $HOSTNAME =~ $ValidHostnameRegex ]]
+    if [[ $HOST =~ $ValidHostnameRegex ]]
     then
       echo "Hostname is in valid format, setting hostname"
       ValidInput=true
     else
+      # when input is not empty, use input as prompt
+      # by default prmopt is last non-empty value
+      if [ "$HOST" != "" ]; then
+        HOSTPROMPT=$HOST
+      fi
       echo "Specified hostname is not valid"
       if [ $interactive == false ]; then
         exit
@@ -92,21 +101,22 @@ enabled=1" > /etc/yum.repos.d/fake.repo
     fi
   done
 
-  hostnamectl set-hostname $HOSTNAME
-  hostnamectl set-hostname --transient $HOSTNAME
+  hostnamectl set-hostname $HOST
+  hostnamectl set-hostname --transient $HOST
   # In case we're running this installer again, delete any previous entries
   sed -i '/fusor-undercloud-installer/,+1d' /etc/hosts
   echo "# fusor-undercloud-installer managed:" >> /etc/hosts
-  echo "127.0.0.1 $HOSTNAME `hostname -s`" >> /etc/hosts
+  echo "127.0.0.1 $HOST `hostname -s`" >> /etc/hosts
 
   ValidInput=false
   # Ask for DNS server and set it if not already in resolv.conf
   NAMESERVER=`grep ^nameserver /etc/resolv.conf | head -1 |awk '{print $2}'`
   if [ -z $NAMESERVER ]; then NAMESERVER='127.0.0.1'; fi
 
+  NAMESERVERPROMPT=$NAMESERVER
   while [ $ValidInput == false ]; do
     if [ $interactive == true ]; then
-      read -e -p "Enter the DNS nameserver's IP address to use for the Overcloud: " -i $NAMESERVER NAMESERVER
+      read -e -p "Enter the DNS nameserver's IP address to use for the Overcloud: " -i $NAMESERVERPROMPT NAMESERVER
     else
       NAMESERVER=`grep ^nameserver $CONF_FILE | awk '{print $2}'`
     fi
@@ -115,6 +125,11 @@ enabled=1" > /etc/yum.repos.d/fake.repo
       echo "Nameserver IP address is valid"
       ValidInput=true
     else
+      # when input is not empty, use input as prompt
+      # by default prmopt is last non-empty value
+      if [ "$NAMESERVER" != "" ]; then
+        NAMESERVERPROMPT=$NAMESERVER
+      fi
       echo "Specified nameserver is not a valid IP address"
       if [ $interactive == false ]; then
         exit

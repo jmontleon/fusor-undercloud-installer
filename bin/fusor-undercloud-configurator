@@ -364,6 +364,17 @@ while not valid:
     ip_number = ip_number & netmask_number
     valid = True
 
+    # 1306032: despite all the validation we're doing above, some bad values can
+    # still get by. These values will usually cause a traceback later in the
+    # code.
+    try:
+        # last ditch effort to ensure only valid input is accepted
+        ipaddress.ip_network(unicode(input_str), strict=False)
+        valid = True
+    except:
+        print "Something went wrong when parsing IP Address and netmask, please try again."
+        valid = False
+
 network = ipaddress.ip_network(unicode(input_str), strict=False)
 ip_addr = str(network.network_address)
 cidr_network = input_str
@@ -377,17 +388,24 @@ while not valid:
         'correct subnet and does not interfere with the block given above. [%s] ' %
         str(network.broadcast_address - 1))
 
-    if not undercloud_ip:
-        undercloud_ip = str(network.broadcast_address - 1)
-        valid = True
-    elif is_invalid_ip(undercloud_ip):
-        print "I didn't understand that IP Address, please try again."
-        continue
-    elif not ipaddress.IPv4Address(unicode(undercloud_ip)) in network:
+    # 1306032 - wrap logic in a try/except in case any step throws an exception
+    # while parsing the given undercloud_ip address. Any exceptions mean we have bad
+    # input
+    try:
+        if not undercloud_ip:
+            undercloud_ip = str(network.broadcast_address - 1)
+            valid = True
+        elif is_invalid_ip(undercloud_ip):
+            print "I didn't understand that IP Address, please try again."
+            continue
+        elif not ipaddress.IPv4Address(unicode(undercloud_ip)) in network:
+            print "Entered IP address is not in the valid network range, please try again."
+            valid = False
+        else:
+            valid = True
+    except:
         print "Entered IP address is not in the valid network range, please try again."
         valid = False
-    else:
-        valid = True
 
 valid = False
 gateway = False
@@ -407,23 +425,30 @@ while not valid:
         'this machine a critical piece of your OpenStack infrastructure. [%s] ' %
         suggestion)
 
-    if not gateway:
-        gateway = suggestion
-        valid = True
-    else:
-        if is_invalid_ip(gateway):
-            print "The specified network gateway is not a valid IP address, please try again"
-            valid = False
-        elif not ipaddress.IPv4Address(unicode(gateway)) in network:
-            print "Entered IP address not in the " \
-                  "specified network range, please try again."
-            valid = False
-        elif gateway == undercloud_ip:
-            print "Gateway IP address must be different than the assigned undercloud IP. " \
-                  "Please try again"
-            valid = False
-        else:
+    # 1306032 - wrap logic in a try/except in case any step throws an exception
+    # while parsing the given gateway address. Any exceptions mean we have bad
+    # input
+    try:
+        if not gateway:
+            gateway = suggestion
             valid = True
+        else:
+            if is_invalid_ip(gateway):
+                print "The specified network gateway is not a valid IP address, please try again"
+                valid = False
+            elif not ipaddress.IPv4Address(unicode(gateway)) in network:
+                print "Entered IP address not in the " \
+                      "specified network range, please try again."
+                valid = False
+            elif gateway == undercloud_ip:
+                print "Gateway IP address must be different than the assigned undercloud IP. " \
+                      "Please try again"
+                valid = False
+            else:
+                valid = True
+    except:
+        print "Entered IP address not in the specified network range, please try again."
+        valid = False
 
 done = False
 while not done:

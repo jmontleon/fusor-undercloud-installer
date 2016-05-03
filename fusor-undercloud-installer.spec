@@ -9,7 +9,7 @@ URL: 		https://github.com/fusor/fusor-undercloud-installer
 Source0: 
 
 Requires: python(abi) = 2.7
-Requires: ruby193-rubygem-egon
+Requires: tfm-rubygem-egon
 Requires: python-ipaddress
 Requires: python-netifaces
 BuildArch noarch

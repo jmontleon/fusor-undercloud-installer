@@ -454,9 +454,9 @@ done = False
 while not done:
     print
     admin_password = raw_input(
-        'Please specify the admin password for this undercloud. When the installation is complete '
+        'Please specify the admin password for this undercloud. When the installation is complete, '
         'you will be able to log in to this undercloud with user "admin" and this password. If you '
-        'leave it blank one will be randomly generated, and you can look it up later with "hiera '
+        'leave it blank, one will be randomly generated, and you can look it up later with "hiera '
         'admin_password". [<generate>] ')
 
     if (not admin_password) or admin_password.isalnum():  # if blank or valid password

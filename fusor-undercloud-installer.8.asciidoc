@@ -1,0 +1,49 @@
+fusor-undercloud-installer(8)
+=============================
+
+NAME
+----
+fusor-undercloud-installer - installation script for Fusor Undercloud
+
+SYNOPSIS
+--------
+fusor-undercloud-installer [--non-interactive] [--answer-file=FILENAME] [--skip-validations] [--help]
+
+
+DESCRIPTION
+-----------
+fusor-undercloud-installer is the installer that configures and setups Fusor
+Undercloud for use by Fusor.
+
+OPTIONS
+-------
+--non-interactive::
+Runs the installer without prompting the user for any information. It will use
+default answers file '/etc/fusor-undercloud-installer/fusor-undercloud-installer.answers.yaml'
+
+--answer-file='FILENAME::
+Runs the installer without prompting the user for any information. Using the
+supplied FILENAME as the answers file.
+
+--skip-validations::
+Skip fusor-installer hardware validations.  (default: false)
+
+--help::
+print help
+
+AUTHORS
+--------
+...................................
+David Gao <jinmaster923@gmail.com>
+Dylan Murray <dymurray@redhat.com>
+Jason Montleon <jmontleo@redhat.com>
+jesus m. rodriguez <jmrodri@gmail.com>
+John Kim <jkim@redhat.com>
+John Matthews <jwmatthews@gmail.com>
+Stephen Herr <sherr@redhat.com>
+Thom Carlin <tcarlin@redhat.com>
+...................................
+
+COPYRIGHT
+---------
+2016 Red Hat, Licensed under GPLv2

@@ -1,5 +1,12 @@
 #!/bin/bash
 
+usage () {
+    echo
+    echo "fusor-undercloud-installer [--non-interactive] [--answer-file=FILENAME] [--skip-validations] [--help]"
+    echo
+    exit 1
+}
+
 fusor_undercloud_install() {
 
   if [ "$(id -u)" != "0" ]; then
@@ -24,6 +31,10 @@ fusor_undercloud_install() {
         ;;
       --skip-validations)
         skip_system_validations=true
+        ;;
+      --help)
+        skip_system_validations=true
+        usage
         ;;
       *) echo 'Invalid argument... staying in interactive mode'
         ;;

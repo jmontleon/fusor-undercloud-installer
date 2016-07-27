@@ -1,0 +1,20 @@
+fusor-undercloud-configurator(8)
+================================
+
+NAME
+----
+fusor-undercloud-configurator - configuration sub-program used by
+fusor-undercloud-configurator
+
+SYNOPSIS
+--------
+See 'fusor-undercloud-installer(8)'
+
+DESCRIPTION
+-----------
+fusor-undercloud-configurator is a configuration sub-program used by
+fusor-undercloud-configurator
+
+COPYRIGHT
+---------
+2016 Red Hat, Licensed under GPLv2

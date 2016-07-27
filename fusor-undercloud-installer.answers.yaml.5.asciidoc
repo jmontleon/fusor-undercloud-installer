@@ -1,0 +1,210 @@
+fusor-undercloud-installer.answers.yaml(5)
+==========================================
+
+NAME
+----
+fusor-undercloud-installer.answers.yaml - Default answers file defining
+how to configure the undercloud.
+
+DESCRIPTION
+-----------
+Default answers file defining how to configure the undercloud.
+
+FORMAT
+-------
+...................................
+<classname>:
+  <param>: <value> - include and override the default(s)
+...................................
+The minimum information is filled in by default, all advanced options
+can be left blank if the default is desired. If specifying advanced
+options, ensure that the 'specify' parameter is set to 'True'
+
+SECTIONS
+--------
+fusor-undercloud-installer.answers.yaml has several sections:
+
+UNDERCLOUD
+----------
+provisioning_nic::
+Network interface used to provision from the undercloud. (default: eth1)
+
+ip_addr::
+IP address used for the provisioning network. (default: 192.168.150.0/24)
+
+gateway::
+Network gateway address. (default: 192.168.150.1)
+
+undercloud_ip::
+The IP address of the Undercloud itself
+
+HOSTNAME
+--------
+The hostname of the Undercloud itself. (default: instack.example.com)
+
+NAMESERVER
+----------
+DNS address. (default: 127.0.0.1)
+
+PASSWORD
+--------
+admin_password::
+Password used by the administrator account on the Undercloud. (default:
+dog8code)
+
+ADVANCED
+--------
+Contains the optional advanced configuration for setting up the Undercloud.
+
+specify::
+Set to True if you want the installer to read the rest of the advanced values. (default: False)
+
+undercloud_public_vip::
+Virtual IP address to use for the public endpoints of Undercloud
+services.  Only used if undercloud_service_certficate is set.
+
+undercloud_admin_vip::
+Virtual IP address to use for the admin endpoints of Undercloud
+services.  Only used if undercloud_service_certficate is set.
+
+dhcp_start::
+Start of DHCP allocation range for PXE and DHCP of Overcloud instances.
+
+dhcp_end::
+End of DHCP allocation rnage for PXE and DHCP of Overcloud instances.
+
+discovery_interface::
+Interface used for discovering and provisioning nodes
+
+undercloud_debug::
+Whether to enable the debug log level for Undercloud services. (default: false)
+
+undercloud_db_password::
+Password used for MySQL database. If left unset, one will be automatically
+generated.
+
+undercloud_admin_token::
+Keystone admin token. If left unset, one will be automatically
+generated.
+
+undercloud_glance_password::
+Glance service password. If left unset, one will be automatically
+generated.
+
+undercloud_heat_encryption_key::
+Heat db encryption key(must be 16, 24, or 32 characters. If left
+unset, one will be automatically generated.
+
+undercloud_heat_password::
+Heat service password. If left unset, one will be automatically
+generated.
+
+undercloud_neutron_password::
+Neutron service password. If left unset, one will be automatically
+generated.
+
+undercloud_nova_password::
+Nova service password. If left unset, one will be automatically
+generated.
+
+undercloud_ironic_password::
+Ironic service password. If left unset, one will be automatically
+generated.
+
+undercloud_ceilometer_password::
+Ceilometer service password. If left unset, one will be automatically
+generated.
+
+undercloud_ceilometer_metering_secret::
+Ceilometer metering secret. If left unset, one will be automatically
+generated.
+
+undercloud_ceilometer_snmpd_user::
+Ceilometer snmpd read-only user. If this value is changed from the
+default, the new value must be passed in the overcloud environment
+as the parameter SnmpdReadonlyUserName. This value must be between 1
+and 32 characters long.
+
+undercloud_ceilometer_snmpd_password::
+Ceilometer snmpd password. If left unset, one will be automatically
+generated.
+
+undercloud_swift_password::
+Swift service password. If left unset, one will be automatically
+generated.
+
+undercloud_rabbit_cookie::
+Rabbitmq cookie. If left unset, one will be automatically generated.
+
+undercloud_rabbit_password::
+Rabbitmq password. If left unset, one will be automatically
+generated.
+
+undercloud_rabbit_username::
+Rabbitmq username. If left unset, one will be automatically
+generated.
+
+undercloud_heat_stack_domain_admin_password::
+Heat stack domain admin password. If left unset, one will be
+automatically generated.
+
+undercloud_swift_hash_suffix::
+Swift hash suffix. If left unset, one will be automatically
+generated.
+
+
+EXAMPLE
+-------
+
+...................................
+# Format:
+# <classname>:
+#   <param>: <value> - include and override the default(s)
+#
+# The minimum information is filled in by default, all advanced options
+# can be left blank if the default is desired. If specifying advanced
+# options, ensure that the 'specify' parameter is set to 'True'
+---
+undercloud:
+  provisioning_nic: eth1
+  ip_addr: 192.168.150.0/24
+  gateway: 192.168.150.1
+  undercloud_ip: 192.168.150.254
+hostname: instack.example.com
+nameserver: 127.0.0.1
+password:
+  admin_password: dog8code
+advanced:
+  specify: False
+  image_path:
+  undercloud_public_vip:
+  undercloud_admin_vip:
+  dhcp_start:
+  dhcp_end:
+  discovery_interface:
+  undercloud_debug:
+  undercloud_db_password:
+  undercloud_admin_token:
+  undercloud_glance_password:
+  undercloud_heat_encryption_key:
+  undercloud_heat_password:
+  undercloud_neutron_password:
+  undercloud_nova_password:
+  undercloud_ironic_password:
+  undercloud_tuskar_password:
+  undercloud_ceilometer_password:
+  undercloud_ceilometer_metering_secret:
+  undercloud_ceilometer_snmpd_user:
+  undercloud_ceilometer_snmpd_password:
+  undercloud_swift_password:
+  undercloud_rabbit_cookie:
+  undercloud_rabbit_password:
+  undercloud_rabbit_username:
+  undercloud_heat_stack_domain_admin_password:
+  undercloud_swift_hash_suffix:
+...................................
+
+SEE ALSO
+--------
+fusor-undercloud-installer(8)
+

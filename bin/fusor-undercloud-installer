@@ -223,6 +223,14 @@ enabled=1" > /etc/yum.repos.d/fake.repo
   NETWORK_ID=`neutron subnet-list | grep start | awk '{print $2}'`
   neutron subnet-update $NETWORK_ID --dns-nameserver $NAMESERVER
 
+  #We do not use these and do not want them
+  nova flavor-delete baremetal
+  nova flavor-delete block-storage
+  nova flavor-delete ceph-storage
+  nova flavor-delete swift-storage
+  nova flavor-delete compute
+  nova flavor-delete control
+
   # Echo out ip addr and password
   echo "Installation complete!"
   echo

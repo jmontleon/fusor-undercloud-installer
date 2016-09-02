@@ -1,5 +1,5 @@
 Name:       fusor-undercloud-installer
-Version:    1.0.1
+Version:    1.1.0
 Release:    0%{?dist}
 Summary:    Scripts to configure and install an OpenStack Undercloud instance.
 

@@ -236,7 +236,7 @@ enabled=1" > /etc/yum.repos.d/fake.repo
   echo
   echo "Your IP Address is:"
   python -c "import netifaces as ni; print ni.ifaddresses('br-ctlplane')[2][0]['addr']"
-  echo "Make a note of this for the RHCI web UI."
+  echo "Make a note of this for the QCI web UI."
 }
 
 check_cpu_cores() {

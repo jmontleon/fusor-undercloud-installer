@@ -116,6 +116,8 @@ def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask,
     no_prompt['local_interface'] = provisioning_nic
     no_prompt['undercloud_admin_password'] = admin_password
     defaults = {}
+    defaults['hieradata_override'] = '/usr/share/fusor-undercloud-installer/' \
+        'disable-docker-registry.yaml'
     defaults['image_path'] = '/home/stack/images'
     defaults['local_ip'] = undercloud_ip + '/' + netmask
     defaults['undercloud_public_vip'] = str(undercloud_public_vip)
@@ -130,6 +132,8 @@ def write_undercloud_conf(provisioning_nic, ip_number, undercloud_ip, netmask,
 
     for line in iter(sample):
         line = line.rstrip()  # drop newlines
+        if line.endswith("="):
+            line = line + " "
         if advanced:
             if line.startswith("#"):
                 if line.startswith("# "):
@@ -206,6 +210,7 @@ def ip_addr_to_num(ip, netmask):
     netmask_number = (ip_max << (32 - int(netmask))) & ip_max
     ip_number = ip_number & netmask_number
     return ip_number
+
 
 # discover things about our network interfaces
 nics = ni.interfaces()

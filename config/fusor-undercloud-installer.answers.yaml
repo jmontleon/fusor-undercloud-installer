@@ -18,6 +18,7 @@ password:
 advanced:
   specify: False
   image_path:
+  hieradata_override:
   undercloud_public_vip:
   undercloud_admin_vip:
   dhcp_start:
